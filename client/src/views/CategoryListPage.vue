@@ -6,7 +6,7 @@
     <section class="category-header">
       <div class="container">
         <div class="breadcrumb">
-          <router-link to="/">Home</router-link>
+          <router-link to="/">{{ $t('common.home') }}</router-link>
           <span class="separator">/</span>
           <span class="current">{{ categoryName }}</span>
         </div>
@@ -25,24 +25,24 @@
       <div class="container">
         <div v-if="loading" class="loading-container">
           <div class="loading-spinner"></div>
-          <p>Loading businesses...</p>
+          <p>{{ $t('business.loadingBusinesses') }}</p>
         </div>
         
         <div v-else-if="error" class="error-container">
           <div class="error-icon">⚠️</div>
           <p class="error">{{ error }}</p>
-          <router-link to="/" class="back-btn">← Back to Home</router-link>
+          <router-link to="/" class="back-btn">{{ $t('auth.backToHome') }}</router-link>
         </div>
         
         <div v-else-if="businesses.length === 0" class="empty-state">
           <div class="empty-icon">📭</div>
-          <h2>No businesses found</h2>
-          <p>There are no businesses in this category yet.</p>
-          <router-link to="/" class="browse-btn">Browse All Categories</router-link>
+          <h2>{{ $t('business.noResults') }}</h2>
+          <p>{{ $t('business.noResultsDesc') }}</p>
+          <router-link to="/" class="browse-btn">{{ $t('business.browseAll') }}</router-link>
         </div>
         
         <div v-else>
-          <p class="results-count">{{ businesses.length }} businesses found</p>
+          <p class="results-count">{{ businesses.length }} {{ $t('business.businessesFound') }}</p>
           <div class="businesses-grid">
             <router-link 
               v-for="business in businesses" 
@@ -53,17 +53,20 @@
               <div class="card-image">
                 <img :src="business.photos?.[0] || 'https://via.placeholder.com/400x250'" :alt="business.name" />
                 <span class="price-badge">{{ business.price_range }}</span>
+                <span v-if="business.coupons && business.coupons.length > 0" class="coupon-badge-overlay">
+                  🎟️ {{ business.coupons.length }} {{ business.coupons.length === 1 ? 'Coupon' : 'Coupons' }}
+                </span>
               </div>
               <div class="card-content">
                 <h3 class="business-name">{{ business.name }}</h3>
-                <p class="business-description">{{ business.description_en }}</p>
+                <p class="business-description">{{ currentLocale === 'my' ? (business.description_my || business.description_en) : business.description_en }}</p>
                 <div class="business-meta">
                   <span class="address">📍 {{ business.address }}</span>
                 </div>
                 <div class="business-tags">
                   <span v-for="tag in business.tags?.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
                 </div>
-                <span class="view-link">View Details →</span>
+                <span class="view-link">{{ $t('business.viewDetails') }} →</span>
               </div>
             </router-link>
           </div>
@@ -74,30 +77,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import AppHeader from '../components/layout/AppHeader.vue'
 
 const route = useRoute()
+const { t, locale } = useI18n()
 const businesses = ref([])
 const loading = ref(true)
 const error = ref('')
 const categoryName = ref('')
 const categoryDescription = ref('')
 const categoryIcon = ref('')
+const currentLocale = computed(() => locale.value)
 
-const categoryMap = {
-  'sim-cards': { name: 'SIM Cards & WiFi', icon: '📱', description: 'Stay connected with local SIM cards and pocket WiFi' },
-  'ramen': { name: 'Ramen', icon: '🍜', description: 'Discover the best ramen shops across Japan' },
-  'currency-exchange': { name: 'Currency Exchange', icon: '💴', description: 'Find the best rates for currency exchange' },
-  'temples-shrines': { name: 'Temples & Shrines', icon: '⛩️', description: 'Explore sacred temples and shrines' },
-  'hotels': { name: 'Hotels & Ryokan', icon: '🏨', description: 'Traditional and modern accommodations' },
-  'transportation': { name: 'Transportation', icon: '🚄', description: 'Navigate Japan with ease' },
-}
+const getCategoryMap = () => ({
+  'sim-cards': { name: t('category.simCards'), icon: '📶', description: t('category.simCardsDesc') },
+  'ramen': { name: t('category.ramen'), icon: '🍜', description: t('category.ramenDesc') },
+  'sushi': { name: t('category.sushi'), icon: '🍣', description: t('category.sushiDesc') },
+  'yakiniku': { name: t('category.yakiniku'), icon: '🥩', description: t('category.yakinikuDesc') },
+  'bookstores': { name: t('category.bookstores'), icon: '📚', description: t('category.bookstoresDesc') },
+  'currency-exchange': { name: t('category.currencyExchange'), icon: '💱', description: t('category.currencyExchangeDesc') },
+})
 
 onMounted(async () => {
   const slug = route.params.slug
+  const categoryMap = getCategoryMap()
   const category = categoryMap[slug] || { name: slug, icon: '📂', description: '' }
   
   categoryName.value = category.name
@@ -411,6 +418,27 @@ onMounted(async () => {
   transform: translateX(4px);
 }
 
+/* Coupon Badge Overlay */
+.coupon-badge-overlay {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
+  animation: couponPulse 2s ease-in-out infinite;
+}
+
+@keyframes couponPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4); }
+  50% { box-shadow: 0 2px 16px rgba(231, 76, 60, 0.6); }
+}
+
 @media (max-width: 768px) {
   .businesses-grid {
     grid-template-columns: 1fr;
@@ -423,6 +451,30 @@ onMounted(async () => {
   
   .category-title {
     font-size: 2rem;
+  }
+
+  .category-icon {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .category-header {
+    padding: 2rem 0;
+  }
+
+  .category-title {
+    font-size: 1.5rem;
+  }
+
+  .category-description {
+    font-size: 0.9375rem;
+  }
+
+  .card-content {
+    padding: 1rem;
   }
 }
 </style>

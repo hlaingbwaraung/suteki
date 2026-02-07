@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { OAuth2Client } = require('google-auth-library')
 const { User } = require('../models')
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production'
@@ -28,7 +29,7 @@ exports.register = async (req, res) => {
     })
 
     // Generate token
-    const token = jwt.sign({ id: user.id, email: user.email, is_admin: user.is_admin }, JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, is_admin: user.is_admin, is_shop_owner: user.is_shop_owner, is_premium: user.is_premium }, JWT_SECRET, {
       expiresIn: JWT_EXPIRE
     })
 
@@ -39,7 +40,11 @@ exports.register = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_shop_owner: user.is_shop_owner,
+        is_premium: user.is_premium,
+        premium_type: user.premium_type,
+        points: user.points || 0
       }
     })
   } catch (error) {
@@ -71,7 +76,7 @@ exports.login = async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ id: user.id, email: user.email, is_admin: user.is_admin }, JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, email: user.email, is_admin: user.is_admin, is_shop_owner: user.is_shop_owner, is_premium: user.is_premium }, JWT_SECRET, {
       expiresIn: JWT_EXPIRE
     })
 
@@ -82,7 +87,11 @@ exports.login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_shop_owner: user.is_shop_owner,
+        is_premium: user.is_premium,
+        premium_type: user.premium_type,
+        points: user.points || 0
       }
     })
   } catch (error) {
@@ -109,16 +118,86 @@ exports.getCurrentUser = async (req, res) => {
   }
 }
 
-// Google OAuth login (placeholder - needs Google OAuth setup)
+// Google OAuth login
 exports.googleAuth = async (req, res) => {
   try {
-    res.status(501).json({ 
-      message: 'Google OAuth is not yet configured. Please use email/password registration.',
-      note: 'To enable Google OAuth, set up Google OAuth credentials in .env file'
+    const { credential } = req.body
+
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required' })
+    }
+
+    const googleClientId = process.env.GOOGLE_CLIENT_ID
+    if (!googleClientId) {
+      return res.status(500).json({ message: 'Google OAuth is not configured on the server' })
+    }
+
+    // Verify the Google ID token
+    const client = new OAuth2Client(googleClientId)
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId
+    })
+
+    const payload = ticket.getPayload()
+    const { sub: googleId, email, name, picture, email_verified } = payload
+
+    if (!email) {
+      return res.status(400).json({ message: 'Unable to get email from Google account' })
+    }
+
+    // Check if user exists by google_id or email
+    let user = await User.findOne({ where: { google_id: googleId } })
+
+    if (!user) {
+      // Check if a user with same email exists (link accounts)
+      user = await User.findOne({ where: { email } })
+
+      if (user) {
+        // Link existing email account with Google
+        user.google_id = googleId
+        if (!user.name && name) user.name = name
+        if (email_verified) user.email_verified = true
+        await user.save()
+      } else {
+        // Create new user
+        user = await User.create({
+          email,
+          name: name || email.split('@')[0],
+          google_id: googleId,
+          email_verified: !!email_verified,
+          password_hash: null
+        })
+      }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, is_admin: user.is_admin, is_shop_owner: user.is_shop_owner, is_premium: user.is_premium },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRE }
+    )
+
+    res.json({
+      message: 'Google login successful',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        is_admin: user.is_admin,
+        is_shop_owner: user.is_shop_owner,
+        is_premium: user.is_premium,
+        premium_type: user.premium_type,
+        points: user.points || 0
+      }
     })
   } catch (error) {
     console.error('Google auth error:', error)
-    res.status(500).json({ message: 'Server error' })
+    if (error.message?.includes('Token used too late') || error.message?.includes('Invalid token')) {
+      return res.status(401).json({ message: 'Invalid or expired Google token. Please try again.' })
+    }
+    res.status(500).json({ message: 'Server error during Google authentication' })
   }
 }
 
@@ -152,7 +231,8 @@ exports.updateProfile = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_shop_owner: user.is_shop_owner
       }
     })
   } catch (error) {
@@ -213,5 +293,61 @@ exports.deleteAccount = async (req, res) => {
   } catch (error) {
     console.error('Delete account error:', error)
     res.status(500).json({ message: 'Server error deleting account' })
+  }
+}
+
+// Activate premium
+exports.activatePremium = async (req, res) => {
+  try {
+    const userId = req.user.id
+    const { plan } = req.body // 'monthly' or 'lifetime'
+
+    if (!['monthly', 'lifetime'].includes(plan)) {
+      return res.status(400).json({ message: 'Invalid plan. Choose monthly or lifetime.' })
+    }
+
+    const user = await User.findByPk(userId)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    user.is_premium = true
+    user.premium_type = plan
+
+    if (plan === 'monthly') {
+      const expiresAt = new Date()
+      expiresAt.setMonth(expiresAt.getMonth() + 1)
+      user.premium_expires_at = expiresAt
+    } else {
+      user.premium_expires_at = null // Lifetime never expires
+    }
+
+    await user.save()
+
+    // Return updated token with premium status
+    const token = jwt.sign(
+      { id: user.id, email: user.email, is_admin: user.is_admin, is_shop_owner: user.is_shop_owner || false, is_premium: user.is_premium },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    )
+
+    res.json({
+      message: 'Premium activated successfully',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        preferred_language: user.preferred_language,
+        is_admin: user.is_admin,
+        is_shop_owner: user.is_shop_owner || false,
+        is_premium: user.is_premium,
+        premium_type: user.premium_type,
+        premium_expires_at: user.premium_expires_at
+      }
+    })
+  } catch (error) {
+    console.error('Activate premium error:', error)
+    res.status(500).json({ message: 'Server error activating premium' })
   }
 }

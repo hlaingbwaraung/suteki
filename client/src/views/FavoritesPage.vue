@@ -4,12 +4,12 @@
 
     <div class="container">
       <div class="page-header">
-        <h1>❤️ My Favorites</h1>
-        <p class="subtitle">Your saved businesses and places</p>
+        <h1>❤️ {{ $t('favorites.title') }}</h1>
+        <p class="subtitle">{{ $t('favorites.subtitle') }}</p>
       </div>
 
       <div v-if="loading" class="loading-container">
-        <p class="loading">Loading your favorites...</p>
+        <p class="loading">{{ $t('favorites.loading') }}</p>
       </div>
 
       <div v-else-if="error" class="error-container">
@@ -18,9 +18,9 @@
 
       <div v-else-if="favorites.length === 0" class="empty-state">
         <div class="empty-icon">💔</div>
-        <h2>No favorites yet</h2>
-        <p>Start exploring and save your favorite businesses!</p>
-        <router-link to="/" class="browse-btn">Browse Businesses</router-link>
+        <h2>{{ $t('favorites.empty') }}</h2>
+        <p>{{ $t('favorites.emptyDesc') }}</p>
+        <router-link to="/" class="browse-btn">{{ $t('favorites.browseBusiness') }}</router-link>
       </div>
 
       <div v-else class="favorites-grid">
@@ -358,6 +358,28 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .favorites-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-content {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.375rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .container {
+    padding: 0 1rem;
   }
 }
 </style>

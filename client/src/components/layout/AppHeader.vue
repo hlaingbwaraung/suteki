@@ -1,31 +1,73 @@
-<template>
+﻿<template>
   <header class="header">
     <div class="header-container">
       <router-link to="/" class="logo">
-        <span class="logo-icon">🎌</span>
+        <span class="logo-icon">&#127884;</span>
         <span class="logo-text">Tattant</span>
       </router-link>
       
-      <nav class="nav">
-        <router-link to="/" class="nav-link">Home</router-link>
-        <router-link to="/categories" class="nav-link">Explore</router-link>
-        <router-link to="/about-japan" class="nav-link">About Japan</router-link>
+      <nav class="nav" :class="{ open: mobileMenuOpen }">
+        <router-link to="/" class="nav-link" @click="closeMobile">{{ $t('nav.home') }}</router-link>
+        <router-link to="/explore" class="nav-link" @click="closeMobile">{{ $t('nav.explore') }}</router-link>
+        <router-link to="/about-japan" class="nav-link" @click="closeMobile">{{ $t('nav.about') }}</router-link>
+        <router-link to="/learn-japanese" class="nav-link premium-link" @click="closeMobile">🎌 {{ $t('nav.learnJapanese') }}</router-link>
+        <router-link to="/points-shop" class="nav-link" @click="closeMobile">🪙 {{ $t('nav.pointsShop') }}</router-link>
+
+        <!-- Mobile-only auth links -->
+        <div class="mobile-auth" v-if="mobileMenuOpen">
+          <template v-if="!authStore.isAuthenticated">
+            <router-link to="/login" class="nav-link" @click="closeMobile">{{ $t('nav.login') }}</router-link>
+            <router-link to="/register" class="nav-link mobile-signup" @click="closeMobile">{{ $t('nav.getStarted') }}</router-link>
+          </template>
+          <template v-else>
+            <router-link v-if="authStore.user?.is_admin" to="/admin" class="nav-link" @click="closeMobile">
+               {{ $t('nav.adminDashboard') }}
+            </router-link>
+            <router-link v-if="authStore.user?.is_shop_owner" to="/shop-owner" class="nav-link" @click="closeMobile">
+               Shop Dashboard
+            </router-link>
+            <router-link to="/dashboard" class="nav-link" @click="closeMobile"> {{ $t('nav.dashboard') }}</router-link>
+            <router-link to="/favorites" class="nav-link" @click="closeMobile"> {{ $t('nav.favorites') }}</router-link>
+            <router-link to="/profile/settings" class="nav-link" @click="closeMobile"> {{ $t('nav.settings') }}</router-link>
+            <button @click="handleLogout" class="nav-link mobile-logout"> {{ $t('nav.signOut') }}</button>
+          </template>
+        </div>
       </nav>
       
       <div class="header-actions">
-        <!-- Theme Toggle -->
+        <button @click="toggleLanguage" class="lang-toggle" :title="currentLang === 'en' ? 'Switch to Myanmar' : 'Switch to English'">
+          <svg class="lang-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span class="lang-label">{{ currentLang === 'en' ? 'EN' : 'MY' }}</span>
+        </button>
+
         <button @click="themeStore.toggleTheme" class="theme-toggle" :title="themeStore.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-          <span v-if="themeStore.isDarkMode" class="theme-icon">☀️</span>
-          <span v-else class="theme-icon">🌙</span>
+          <svg v-if="themeStore.isDarkMode" class="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg v-else class="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
         </button>
         
         <template v-if="!authStore.isAuthenticated">
-          <router-link to="/login" class="nav-link login-link">Login</router-link>
-          <router-link to="/register" class="btn-signup">Get Started</router-link>
+          <router-link to="/login" class="nav-link login-link desktop-only">{{ $t('nav.login') }}</router-link>
+          <router-link to="/register" class="btn-signup desktop-only">{{ $t('nav.getStarted') }}</router-link>
         </template>
         
         <template v-else>
-          <div class="user-menu" ref="userMenuRef">
+          <div class="user-menu desktop-only" ref="userMenuRef">
             <button @click="toggleUserMenu" class="user-button">
               <span class="user-avatar">{{ authStore.user?.name?.charAt(0).toUpperCase() || 'U' }}</span>
               <span class="user-name">{{ authStore.user?.name || 'User' }}</span>
@@ -41,39 +83,60 @@
                 </div>
                 <div class="dropdown-divider"></div>
                 <router-link v-if="authStore.user?.is_admin" to="/admin" class="dropdown-item admin" @click="closeMenu">
-                  <span class="dropdown-icon">👨‍💼</span> Admin Dashboard
+                  <span class="dropdown-icon">&#9881;</span> {{ $t('nav.adminDashboard') }}
+                </router-link>
+                <router-link v-if="authStore.user?.is_shop_owner" to="/shop-owner" class="dropdown-item shop-owner" @click="closeMenu">
+                  <span class="dropdown-icon">&#127978;</span> Shop Dashboard
                 </router-link>
                 <router-link to="/dashboard" class="dropdown-item" @click="closeMenu">
-                  <span class="dropdown-icon">📊</span> Dashboard
+                  <span class="dropdown-icon">&#128202;</span> {{ $t('nav.dashboard') }}
                 </router-link>
                 <router-link to="/favorites" class="dropdown-item" @click="closeMenu">
-                  <span class="dropdown-icon">❤️</span> Favorites
+                  <span class="dropdown-icon">&#10084;</span> {{ $t('nav.favorites') }}
                 </router-link>
                 <router-link to="/profile/settings" class="dropdown-item" @click="closeMenu">
-                  <span class="dropdown-icon">⚙️</span> Settings
+                  <span class="dropdown-icon">&#9881;</span> {{ $t('nav.settings') }}
                 </router-link>
                 <div class="dropdown-divider"></div>
                 <button @click="handleLogout" class="dropdown-item logout">
-                  <span class="dropdown-icon">🚪</span> Sign Out
+                  <span class="dropdown-icon">&#10140;</span> {{ $t('nav.signOut') }}
                 </button>
               </div>
             </Transition>
           </div>
         </template>
+
+        <button class="hamburger" @click="toggleMobile" :class="{ open: mobileMenuOpen }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </div>
     </div>
+    <div class="mobile-overlay" :class="{ show: mobileMenuOpen }" @click="closeMobile"></div>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 
+const { locale } = useI18n()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const showUserMenu = ref(false)
 const userMenuRef = ref(null)
+const mobileMenuOpen = ref(false)
+
+const currentLang = computed(() => locale.value)
+
+const toggleLanguage = () => {
+  const newLang = locale.value === 'en' ? 'my' : 'en'
+  locale.value = newLang
+  localStorage.setItem('locale', newLang)
+}
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
@@ -83,9 +146,20 @@ const closeMenu = () => {
   showUserMenu.value = false
 }
 
+const toggleMobile = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+  document.body.style.overflow = mobileMenuOpen.value ? 'hidden' : ''
+}
+
+const closeMobile = () => {
+  mobileMenuOpen.value = false
+  document.body.style.overflow = ''
+}
+
 const handleLogout = () => {
   authStore.logout()
   showUserMenu.value = false
+  closeMobile()
 }
 
 const handleClickOutside = (event) => {
@@ -100,6 +174,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -107,7 +182,6 @@ onUnmounted(() => {
 .header {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-light);
-  padding: 0;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -123,23 +197,16 @@ onUnmounted(() => {
   align-items: center;
 }
 
-/* Logo */
 .logo {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
   transition: transform var(--transition-fast);
+  z-index: 102;
 }
-
-.logo:hover {
-  transform: scale(1.02);
-}
-
-.logo-icon {
-  font-size: 1.75rem;
-}
-
+.logo:hover { transform: scale(1.02); }
+.logo-icon { font-size: 1.75rem; }
 .logo-text {
   font-size: 1.5rem;
   font-weight: 700;
@@ -150,12 +217,7 @@ onUnmounted(() => {
   letter-spacing: -0.02em;
 }
 
-/* Navigation */
-.nav {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
+.nav { display: flex; gap: 0.5rem; align-items: center; }
 
 .nav-link {
   padding: 0.625rem 1rem;
@@ -165,60 +227,61 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
   font-weight: 500;
   font-size: 0.9375rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.nav-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+.nav-link.router-link-active { color: var(--color-primary); background: var(--color-primary-light); }
+
+.premium-link {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05)) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--color-primary) !important;
+  font-weight: 600;
+}
+.premium-link:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1)) !important;
+  border-color: var(--color-primary);
 }
 
-.nav-link:hover {
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-}
+.mobile-auth { display: none; }
 
-.nav-link.router-link-active {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
+.header-actions { display: flex; align-items: center; gap: 0.75rem; z-index: 102; }
 
-/* Header Actions */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Theme Toggle */
-.theme-toggle {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.lang-toggle {
+  display: flex; align-items: center; gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
-}
-
-.theme-toggle:hover {
-  background: var(--bg-elevated);
-  border-color: var(--color-primary);
-  transform: rotate(15deg);
-}
-
-.theme-icon {
-  font-size: 1.25rem;
-}
-
-/* Login Link */
-.login-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--text-secondary);
 }
+.lang-toggle:hover { background: var(--bg-elevated); border-color: var(--color-primary); color: var(--color-primary); }
+.lang-icon { flex-shrink: 0; }
+.lang-label { letter-spacing: 0.05em; }
 
-.login-link:hover {
-  color: var(--color-primary);
-  background: transparent;
+.theme-toggle {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
 }
+.theme-toggle:hover { background: var(--bg-elevated); border-color: var(--color-primary); color: var(--color-primary); transform: rotate(15deg); }
+.theme-icon { display: flex; align-items: center; justify-content: center; }
 
-/* Signup Button */
+.login-link { color: var(--text-secondary); }
+.login-link:hover { color: var(--color-primary); background: transparent; }
+
 .btn-signup {
   padding: 0.625rem 1.5rem;
   background: var(--color-primary-gradient);
@@ -232,21 +295,12 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
   box-shadow: var(--shadow-sm);
 }
+.btn-signup:hover { transform: translateY(-2px); box-shadow: var(--shadow-md), var(--shadow-glow); }
 
-.btn-signup:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-}
-
-/* User Menu */
-.user-menu {
-  position: relative;
-}
+.user-menu { position: relative; }
 
 .user-button {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: flex; align-items: center; gap: 0.75rem;
   padding: 0.5rem 1rem 0.5rem 0.5rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
@@ -254,148 +308,112 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all var(--transition-fast);
 }
-
-.user-button:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
+.user-button:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   background: var(--color-primary-gradient);
   color: var(--color-accent);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.9375rem;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.9375rem;
 }
-
 .user-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 0.9375rem;
+  font-weight: 600; color: var(--text-primary); font-size: 0.9375rem;
+  max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.dropdown-arrow { color: var(--text-tertiary); transition: transform var(--transition-fast); }
+.dropdown-arrow.rotate { transform: rotate(180deg); }
 
-.dropdown-arrow {
-  color: var(--text-tertiary);
-  transition: transform var(--transition-fast);
-}
-
-.dropdown-arrow.rotate {
-  transform: rotate(180deg);
-}
-
-/* User Dropdown */
 .user-dropdown {
-  position: absolute;
-  top: calc(100% + 0.75rem);
-  right: 0;
+  position: absolute; top: calc(100% + 0.75rem); right: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  min-width: 260px;
-  z-index: 200;
-  overflow: hidden;
+  min-width: 260px; z-index: 200; overflow: hidden;
 }
-
-.dropdown-header {
-  padding: 1.25rem 1rem;
-  background: var(--bg-tertiary);
-}
-
-.dropdown-user-name {
-  display: block;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 1rem;
-}
-
-.dropdown-user-email {
-  display: block;
-  font-size: 0.8125rem;
-  color: var(--text-tertiary);
-  margin-top: 0.25rem;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background: var(--border-light);
-  margin: 0;
-}
+.dropdown-header { padding: 1.25rem 1rem; background: var(--bg-tertiary); }
+.dropdown-user-name { display: block; font-weight: 700; color: var(--text-primary); font-size: 1rem; }
+.dropdown-user-email { display: block; font-size: 0.8125rem; color: var(--text-tertiary); margin-top: 0.25rem; }
+.dropdown-divider { height: 1px; background: var(--border-light); }
 
 .dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.875rem 1rem;
-  text-decoration: none;
-  color: var(--text-secondary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-  font-size: 0.9375rem;
-  font-weight: 500;
+  display: flex; align-items: center; gap: 0.75rem; width: 100%;
+  padding: 0.875rem 1rem; text-decoration: none; color: var(--text-secondary);
+  background: none; border: none; cursor: pointer;
+  transition: all var(--transition-fast); text-align: left;
+  font-size: 0.9375rem; font-weight: 500; font-family: inherit;
 }
+.dropdown-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.dropdown-icon { font-size: 1rem; width: 20px; text-align: center; }
+.dropdown-item.admin { color: var(--color-primary); font-weight: 600; }
+.dropdown-item.admin:hover { background: var(--color-primary-light); }
+.dropdown-item.shop-owner { color: var(--color-info); font-weight: 600; }
+.dropdown-item.shop-owner:hover { background: var(--color-info-bg); }
+.dropdown-item.logout { color: var(--color-error); }
+.dropdown-item.logout:hover { background: var(--color-error-bg); }
 
-.dropdown-item:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+.dropdown-enter-active, .dropdown-leave-active { transition: all 0.2s ease; }
+.dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-10px); }
+
+/* Hamburger */
+.hamburger {
+  display: none; flex-direction: column; justify-content: center; align-items: center;
+  gap: 5px; width: 40px; height: 40px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); cursor: pointer; z-index: 102; padding: 0;
 }
-
-.dropdown-icon {
-  font-size: 1rem;
-  width: 20px;
-  text-align: center;
+.hamburger span {
+  display: block; width: 20px; height: 2px;
+  background: var(--text-primary); border-radius: 2px; transition: all 0.3s ease;
 }
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-.dropdown-item.admin {
-  color: var(--color-primary);
-  font-weight: 600;
+.mobile-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 90; opacity: 0; transition: opacity 0.3s;
 }
+.mobile-overlay.show { opacity: 1; }
 
-.dropdown-item.admin:hover {
-  background: var(--color-primary-light);
-}
+.desktop-only { display: flex; }
 
-.dropdown-item.logout {
-  color: var(--color-error);
-}
-
-.dropdown-item.logout:hover {
-  background: var(--color-error-bg);
-}
-
-/* Dropdown Animation */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* Responsive */
+/* === RESPONSIVE === */
 @media (max-width: 768px) {
+  .header-container { padding: 0.75rem 1rem; }
+  .desktop-only { display: none !important; }
+  .hamburger { display: flex; }
+  .lang-label { display: none; }
+
   .nav {
-    display: none;
+    position: fixed; top: 0; right: -100%; width: 280px; height: 100vh;
+    background: var(--bg-secondary); flex-direction: column; align-items: stretch;
+    padding: 5rem 1.5rem 2rem; gap: 0.25rem; z-index: 101;
+    transition: right 0.3s ease; box-shadow: var(--shadow-xl); overflow-y: auto;
   }
-  
-  .user-name {
-    display: none;
+  .nav.open { right: 0; }
+  .nav .nav-link { padding: 0.875rem 1rem; font-size: 1rem; border-radius: var(--radius-md); }
+
+  .mobile-auth {
+    display: flex; flex-direction: column; gap: 0.25rem;
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light);
   }
-  
-  .header-container {
-    padding: 0.75rem 1rem;
+  .mobile-signup {
+    background: var(--color-primary-gradient); color: #1a1a2e !important;
+    font-weight: 700; text-align: center; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-top: 0.5rem;
   }
+  .mobile-logout { color: var(--color-error) !important; text-align: left; width: 100%; }
+
+  .mobile-overlay { display: block; pointer-events: none; }
+  .mobile-overlay.show { pointer-events: auto; }
+}
+
+@media (max-width: 480px) {
+  .logo-text { font-size: 1.25rem; }
+  .theme-toggle { width: 36px; height: 36px; }
+  .lang-toggle { padding: 0.4rem 0.5rem; }
 }
 </style>

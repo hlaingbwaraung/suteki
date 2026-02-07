@@ -7,7 +7,7 @@ A modern, mobile-first platform for first-time visitors to Japan. Built with Vue
 - Browse businesses by category (SIM cards, restaurants, bookstores, etc.)
 - User authentication (email/password + Google OAuth)
 - Save favorite businesses
-- Multilingual support (English, Japanese, Chinese, Korean)
+- Multilingual support (English, Burmese)
 - Mobile-responsive design
 - Google Maps integration
 

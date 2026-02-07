@@ -23,15 +23,7 @@ const Business = sequelize.define('Business', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  description_jp: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  description_cn: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  description_kr: {
+  description_my: {
     type: DataTypes.TEXT,
     allowNull: true
   },
@@ -77,6 +69,14 @@ const Business = sequelize.define('Business', {
   photos: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     defaultValue: []
+  },
+  owner_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   },
   is_active: {
     type: DataTypes.BOOLEAN,

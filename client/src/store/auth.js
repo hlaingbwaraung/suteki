@@ -53,19 +53,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function googleLogin(googleToken) {
+  async function googleLogin(credential) {
     try {
       loading.value = true
       error.value = null
-      const response = await googleLoginService(googleToken)
+      const response = await googleLoginService(credential)
 
       token.value = response.data.token
       user.value = response.data.user
       localStorage.setItem('token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
 
       return response
     } catch (err) {
-      error.value = err.response?.data?.error || 'Google login failed'
+      error.value = err.response?.data?.message || 'Google login failed'
       throw err
     } finally {
       loading.value = false

@@ -42,7 +42,7 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'en',
     validate: {
-      isIn: [['en', 'jp', 'cn', 'kr']]
+      isIn: [['en', 'my']]
     }
   },
   email_verified: {
@@ -61,6 +61,29 @@ const User = sequelize.define('User', {
   birthdate: {
     type: DataTypes.DATEONLY,
     allowNull: true
+  },
+  is_shop_owner: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  is_premium: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  premium_type: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  premium_expires_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  points: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
   }
 }, {
   tableName: 'users',

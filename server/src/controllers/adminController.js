@@ -9,7 +9,7 @@ exports.getAllUsers = async (req, res) => {
     }
 
     const users = await User.findAll({
-      attributes: ['id', 'email', 'name', 'preferred_language', 'email_verified', 'is_admin', 'google_id', 'birthdate', 'created_at', 'updated_at'],
+      attributes: ['id', 'email', 'name', 'preferred_language', 'email_verified', 'is_admin', 'is_premium', 'premium_type', 'premium_expires_at', 'google_id', 'birthdate', 'created_at', 'updated_at'],
       order: [['created_at', 'DESC']]
     })
 
@@ -35,6 +35,7 @@ exports.getUserStats = async (req, res) => {
     const verifiedUsers = await User.count({ where: { email_verified: true } })
     const googleUsers = await User.count({ where: { google_id: { [require('sequelize').Op.not]: null } } })
     const adminUsers = await User.count({ where: { is_admin: true } })
+    const premiumUsers = await User.count({ where: { is_premium: true } })
 
     // Get new users in last 7 days
     const sevenDaysAgo = new Date()
@@ -52,6 +53,7 @@ exports.getUserStats = async (req, res) => {
       verifiedUsers,
       googleUsers,
       adminUsers,
+      premiumUsers,
       newUsersLast7Days: newUsers
     })
   } catch (error) {
@@ -124,5 +126,54 @@ exports.deleteUser = async (req, res) => {
   } catch (error) {
     console.error('Delete user error:', error)
     res.status(500).json({ message: 'Server error while deleting user' })
+  }
+}
+
+// Toggle user premium status (admin only)
+exports.togglePremiumStatus = async (req, res) => {
+  try {
+    if (!req.user.is_admin) {
+      return res.status(403).json({ message: 'Access denied. Admin only.' })
+    }
+
+    const { userId } = req.params
+    const { is_premium, premium_type } = req.body
+
+    const user = await User.findByPk(userId)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    user.is_premium = is_premium
+
+    if (is_premium) {
+      user.premium_type = premium_type || 'lifetime'
+      if (premium_type === 'monthly') {
+        const expires = new Date()
+        expires.setMonth(expires.getMonth() + 1)
+        user.premium_expires_at = expires
+      } else {
+        user.premium_expires_at = null
+      }
+    } else {
+      user.premium_type = null
+      user.premium_expires_at = null
+    }
+
+    await user.save()
+
+    res.json({
+      message: `Premium ${is_premium ? 'enabled' : 'disabled'} for user`,
+      user: {
+        id: user.id,
+        email: user.email,
+        is_premium: user.is_premium,
+        premium_type: user.premium_type,
+        premium_expires_at: user.premium_expires_at
+      }
+    })
+  } catch (error) {
+    console.error('Toggle premium status error:', error)
+    res.status(500).json({ message: 'Server error while updating premium status' })
   }
 }

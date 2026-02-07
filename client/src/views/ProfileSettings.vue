@@ -563,5 +563,37 @@ input:disabled {
     flex-direction: column;
     text-align: center;
   }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-card {
+    padding: 1.25rem;
+  }
+
+  .page-title {
+    font-size: 1.375rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+
+  .form-input,
+  .form-select {
+    font-size: 0.875rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .btn-primary {
+    width: 100%;
+  }
 }
 </style>

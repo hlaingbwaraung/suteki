@@ -11,15 +11,7 @@ const Category = sequelize.define('Category', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  name_jp: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  name_cn: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  name_kr: {
+  name_my: {
     type: DataTypes.STRING,
     allowNull: false
   },

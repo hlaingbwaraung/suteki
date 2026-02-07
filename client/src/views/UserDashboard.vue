@@ -457,4 +457,34 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .welcome-title {
+    font-size: 1.375rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .action-card {
+    padding: 1rem;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+}
 </style>

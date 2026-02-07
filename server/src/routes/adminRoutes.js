@@ -15,6 +15,9 @@ router.get('/stats', adminController.getUserStats)
 // Toggle user admin status
 router.patch('/users/:userId/admin', adminController.toggleAdminStatus)
 
+// Toggle user premium status
+router.patch('/users/:userId/premium', adminController.togglePremiumStatus)
+
 // Delete user
 router.delete('/users/:userId', adminController.deleteUser)
 

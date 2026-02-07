@@ -4,13 +4,13 @@
 
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading business details...</p>
+      <p>{{ $t('business.loadingDetails') }}</p>
     </div>
 
     <div v-else-if="error" class="error-container">
       <div class="error-icon">⚠️</div>
       <p class="error">{{ error }}</p>
-      <router-link to="/" class="back-btn">← Back to Home</router-link>
+      <router-link to="/" class="back-btn">{{ $t('auth.backToHome') }}</router-link>
     </div>
 
     <div v-else-if="business" class="business-detail">
@@ -22,7 +22,7 @@
 
       <div class="container">
         <div class="breadcrumb">
-          <router-link to="/">Home</router-link>
+          <router-link to="/">{{ $t('common.home') }}</router-link>
           <span class="separator">/</span>
           <span class="current">{{ business.name }}</span>
         </div>
@@ -43,12 +43,12 @@
             </div>
 
             <div class="section">
-              <h2>About</h2>
-              <p>{{ business.description_en }}</p>
+              <h2>{{ $t('business.about') }}</h2>
+              <p>{{ currentLocale === 'my' ? (business.description_my || business.description_en) : business.description_en }}</p>
             </div>
 
             <div v-if="business.opening_hours" class="section">
-              <h2>Opening Hours</h2>
+              <h2>{{ $t('business.hours') }}</h2>
               <div class="opening-hours">
                 <div v-for="(hours, day) in business.opening_hours" :key="day" class="hours-row">
                   <span class="day">{{ day.toUpperCase() }}</span>
@@ -58,22 +58,45 @@
             </div>
 
             <div class="section">
-              <h2>Location</h2>
+              <h2>{{ $t('business.location') }}</h2>
               <p class="address">📍 {{ business.address }}</p>
             </div>
 
             <div v-if="business.phone" class="section">
-              <h2>Contact</h2>
+              <h2>{{ $t('business.contact') }}</h2>
               <p class="phone">📞 {{ business.phone }}</p>
               <p v-if="business.website">
-                <a :href="business.website" target="_blank" class="website-link">🌐 Visit Website →</a>
+                <a :href="business.website" target="_blank" class="website-link">🌐 {{ $t('business.visitWebsite') }} →</a>
               </p>
             </div>
           </div>
 
           <div class="sidebar">
+            <!-- Coupons Card -->
+            <div v-if="business.coupons && business.coupons.length > 0" class="coupons-card">
+              <h3>🎟️ Available Coupons</h3>
+              <div class="coupon-list">
+                <div v-for="coupon in business.coupons" :key="coupon.id" class="coupon-item">
+                  <div class="coupon-header">
+                    <span class="coupon-badge" :class="coupon.discount_type">
+                      {{ coupon.discount_type === 'percentage' ? coupon.discount_value + '%' : coupon.discount_type === 'fixed' ? '¥' + coupon.discount_value : '🎁' }}
+                      {{ coupon.discount_type === 'freebie' ? 'FREE' : 'OFF' }}
+                    </span>
+                    <span class="coupon-code">{{ coupon.code }}</span>
+                  </div>
+                  <div class="coupon-title">{{ coupon.title }}</div>
+                  <p v-if="coupon.description" class="coupon-desc">{{ coupon.description }}</p>
+                  <div class="coupon-meta">
+                    <span v-if="coupon.min_purchase">Min: ¥{{ coupon.min_purchase }}</span>
+                    <span v-if="coupon.end_date">Expires: {{ new Date(coupon.end_date).toLocaleDateString() }}</span>
+                  </div>
+                  <button class="coupon-copy-btn" @click="copyCoupon(coupon.code)">📋 Copy Code</button>
+                </div>
+              </div>
+            </div>
+
             <div class="action-card">
-              <h3>Quick Actions</h3>
+              <h3>{{ $t('business.quickActions') }}</h3>
               <button 
                 @click="handleToggleFavorite" 
                 :disabled="!isAuthenticated || isSaving"
@@ -81,19 +104,19 @@
                 :class="{ 'saved': isSaved }"
               >
                 <span class="btn-icon">{{ isSaved ? '❤️' : '🤍' }}</span>
-                {{ isSaved ? 'Saved to Favorites' : 'Save to Favorites' }}
+                {{ isSaved ? $t('business.savedToFavorites') : $t('business.saveToFavorites') }}
               </button>
               <button class="action-btn share-btn" @click="handleShare">
                 <span class="btn-icon">📤</span>
-                Share Business
+                {{ $t('business.shareBusiness') }}
               </button>
               <p v-if="!isAuthenticated" class="login-hint">
-                <router-link to="/login">Login</router-link> to save favorites
+                <router-link to="/login">{{ $t('nav.login') }}</router-link> {{ $t('business.loginToSave') }}
               </p>
             </div>
 
             <div v-if="business.photos && business.photos.length > 1" class="photos-card">
-              <h3>Photos</h3>
+              <h3>{{ $t('business.photos') }}</h3>
               <div class="photo-grid">
                 <img 
                   v-for="(photo, index) in business.photos.slice(1, 5)" 
@@ -105,13 +128,13 @@
             </div>
 
             <div class="info-card">
-              <h3>Quick Info</h3>
+              <h3>{{ $t('business.quickInfo') }}</h3>
               <div class="info-row">
-                <span class="info-label">Price Range</span>
+                <span class="info-label">{{ $t('business.priceRange') }}</span>
                 <span class="info-value price">{{ business.price_range }}</span>
               </div>
               <div class="info-row" v-if="business.languages_supported">
-                <span class="info-label">Languages</span>
+                <span class="info-label">{{ $t('business.languages') }}</span>
                 <span class="info-value">{{ business.languages_supported.length }}</span>
               </div>
             </div>
@@ -125,6 +148,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { saveBusiness, unsaveBusiness, checkIfSaved } from '../services/favoriteService'
@@ -132,6 +156,7 @@ import { useAuthStore } from '../store/auth'
 
 const route = useRoute()
 const router = useRouter()
+const { locale, t } = useI18n()
 const authStore = useAuthStore()
 const business = ref(null)
 const loading = ref(true)
@@ -140,6 +165,7 @@ const isSaved = ref(false)
 const isSaving = ref(false)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+const currentLocale = computed(() => locale.value)
 
 const handleToggleFavorite = async () => {
   if (!isAuthenticated.value) {
@@ -167,9 +193,18 @@ const handleToggleFavorite = async () => {
 const handleShare = async () => {
   try {
     await navigator.clipboard.writeText(window.location.href)
-    alert('Link copied to clipboard!')
+    alert(t('business.linkCopied'))
   } catch (err) {
     console.error('Error sharing:', err)
+  }
+}
+
+const copyCoupon = async (code) => {
+  try {
+    await navigator.clipboard.writeText(code)
+    alert(`Coupon code "${code}" copied!`)
+  } catch (err) {
+    console.error('Error copying coupon:', err)
   }
 }
 
@@ -189,7 +224,7 @@ onMounted(async () => {
       }
     }
   } catch (err) {
-    error.value = 'Failed to load business details. Please try again later.'
+    error.value = t('business.failedToLoad')
     console.error(err)
   } finally {
     loading.value = false
@@ -570,6 +605,100 @@ onMounted(async () => {
   background-clip: text;
 }
 
+/* Coupons Card */
+.coupons-card {
+  background: var(--bg-card);
+  border: 1px solid var(--color-primary);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glow);
+}
+
+.coupons-card h3 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.coupon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.coupon-item {
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+}
+
+.coupon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.coupon-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+
+.coupon-badge.percentage { background: var(--color-success-bg); color: var(--color-success); }
+.coupon-badge.fixed { background: var(--color-info-bg); color: var(--color-info); }
+.coupon-badge.freebie { background: var(--color-warning-bg); color: var(--color-warning); }
+
+.coupon-code {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  letter-spacing: 0.05em;
+}
+
+.coupon-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  margin-bottom: 0.25rem;
+}
+
+.coupon-desc {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.coupon-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 0.75rem;
+}
+
+.coupon-copy-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.coupon-copy-btn:hover {
+  background: var(--color-primary);
+  color: #1a1a2e;
+}
+
 @media (max-width: 968px) {
   .business-content {
     grid-template-columns: 1fr;
@@ -585,6 +714,50 @@ onMounted(async () => {
   
   .title-section {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .business-hero {
+    height: 220px;
+  }
+
+  .business-name {
+    font-size: 1.25rem;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+
+  .section h2 {
+    font-size: 1.125rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card {
+    padding: 1.25rem;
+  }
+
+  .coupons-card {
+    padding: 1.25rem;
+  }
+
+  .coupon-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+
+  .photos-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .breadcrumb {
+    font-size: 0.75rem;
   }
 }
 </style>

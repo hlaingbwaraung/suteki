@@ -6,29 +6,27 @@
     <section class="hero">
       <div class="hero-bg"></div>
       <div class="hero-content">
-        <span class="hero-badge">Your Premium Japan Guide</span>
+        <span class="hero-badge">{{ $t('home.badge') }}</span>
         <h1 class="hero-title">
-          Discover the <span class="text-gold">Beauty</span> of Japan
+          {{ $t('home.title') }} <span class="text-gold">{{ $t('home.titleHighlight') }}</span> {{ $t('home.titleEnd') }}
         </h1>
         <p class="hero-subtitle">
-          Curated experiences, essential services, and hidden gems for the discerning traveler
+          {{ $t('home.subtitle') }}
         </p>
         <div class="hero-actions">
           <router-link to="/categories" class="btn-hero-primary">
-            Explore Now
+            {{ $t('home.exploreNow') }}
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </router-link>
-          <router-link to="/about-japan" class="btn-hero-secondary">Learn More</router-link>
+          <router-link to="/about-japan" class="btn-hero-secondary">{{ $t('home.learnMore') }}</router-link>
         </div>
         
         <!-- Language Selector -->
         <div class="language-selector">
-          <button class="lang-btn active">EN</button>
-          <button class="lang-btn">日本語</button>
-          <button class="lang-btn">中文</button>
-          <button class="lang-btn">한국어</button>
+          <button class="lang-btn" :class="{ active: currentLang === 'en' }" @click="switchLang('en')">🇬🇧 EN</button>
+          <button class="lang-btn" :class="{ active: currentLang === 'my' }" @click="switchLang('my')">🇲🇲 မြန်မာ</button>
         </div>
       </div>
       
@@ -42,9 +40,9 @@
     <section class="categories-section">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-badge">Explore</span>
-          <h2 class="section-title">Curated Categories</h2>
-          <p class="section-subtitle">Everything you need for an unforgettable journey</p>
+          <span class="section-badge">{{ $t('nav.explore') }}</span>
+          <h2 class="section-title">{{ $t('home.categoriesTitle') }}</h2>
+          <p class="section-subtitle">{{ $t('home.categoriesSubtitle') }}</p>
         </div>
         
         <div class="category-grid">
@@ -74,22 +72,22 @@
           <div class="stat-card">
             <div class="stat-icon">📍</div>
             <div class="stat-number">{{ businessCount }}+</div>
-            <div class="stat-label">Verified Businesses</div>
+            <div class="stat-label">{{ $t('home.statsBusinesses') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">📂</div>
             <div class="stat-number">{{ categoryCount }}</div>
-            <div class="stat-label">Categories</div>
+            <div class="stat-label">{{ $t('home.statsCategories') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">🌐</div>
-            <div class="stat-number">4</div>
-            <div class="stat-label">Languages</div>
+            <div class="stat-number">2</div>
+            <div class="stat-label">{{ $t('home.statsLanguages') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon">⭐</div>
             <div class="stat-number">5.0</div>
-            <div class="stat-label">User Rating</div>
+            <div class="stat-label">{{ $t('home.statsRating') }}</div>
           </div>
         </div>
       </div>
@@ -99,25 +97,25 @@
     <section class="features-section">
       <div class="section-container">
         <div class="section-header">
-          <span class="section-badge">Why Tattant</span>
-          <h2 class="section-title">Designed for Excellence</h2>
+          <span class="section-badge">{{ $t('home.featuredTitle') }}</span>
+          <h2 class="section-title">{{ $t('home.featuredSubtitle') }}</h2>
         </div>
         
         <div class="features-grid">
           <div class="feature-card">
             <div class="feature-icon">🎯</div>
-            <h3 class="feature-title">Curated Selection</h3>
-            <p class="feature-description">Hand-picked businesses and services vetted for quality and authenticity</p>
+            <h3 class="feature-title">{{ $t('home.featureCurated') }}</h3>
+            <p class="feature-description">{{ $t('home.featureCuratedDesc') }}</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">🌏</div>
-            <h3 class="feature-title">Multilingual Support</h3>
-            <p class="feature-description">Browse in English, Japanese, Chinese, or Korean for seamless navigation</p>
+            <h3 class="feature-title">{{ $t('home.featureMultilingual') }}</h3>
+            <p class="feature-description">{{ $t('home.featureMultilingualDesc') }}</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">💎</div>
-            <h3 class="feature-title">Premium Experience</h3>
-            <p class="feature-description">Luxury recommendations tailored to discerning travelers</p>
+            <h3 class="feature-title">{{ $t('home.featurePremium') }}</h3>
+            <p class="feature-description">{{ $t('home.featurePremiumDesc') }}</p>
           </div>
         </div>
       </div>
@@ -128,14 +126,14 @@
       <div class="section-container">
         <div class="cta-card">
           <div class="cta-content">
-            <h2 class="cta-title">Start Your Journey Today</h2>
-            <p class="cta-subtitle">Create an account to save favorites, leave reviews, and personalize your experience</p>
+            <h2 class="cta-title">{{ $t('home.ctaTitle') }}</h2>
+            <p class="cta-subtitle">{{ $t('home.ctaSubtitle') }}</p>
           </div>
           <router-link v-if="!authStore.isAuthenticated" to="/register" class="btn-cta">
-            Get Started Free
+            {{ $t('home.ctaButton') }}
           </router-link>
           <router-link v-else to="/dashboard" class="btn-cta">
-            Go to Dashboard
+            {{ $t('nav.dashboard') }}
           </router-link>
         </div>
       </div>
@@ -147,29 +145,29 @@
         <div class="footer-grid">
           <div class="footer-brand">
             <div class="footer-logo">🎌 Tattant</div>
-            <p class="footer-tagline">Your Premium Japan Tourist Guide</p>
+            <p class="footer-tagline">{{ $t('footer.tagline') }}</p>
           </div>
           <div class="footer-links">
-            <h4>Explore</h4>
-            <router-link to="/categories">Categories</router-link>
-            <router-link to="/about-japan">About Japan</router-link>
-            <router-link to="/faq">FAQ</router-link>
+            <h4>{{ $t('footer.explore') }}</h4>
+            <router-link to="/categories">{{ $t('nav.categories') }}</router-link>
+            <router-link to="/about-japan">{{ $t('nav.about') }}</router-link>
+            <router-link to="/faq">{{ $t('nav.faq') }}</router-link>
           </div>
           <div class="footer-links">
-            <h4>Account</h4>
-            <router-link to="/login">Login</router-link>
-            <router-link to="/register">Register</router-link>
-            <router-link to="/dashboard">Dashboard</router-link>
+            <h4>{{ $t('footer.quickLinks') }}</h4>
+            <router-link to="/login">{{ $t('nav.login') }}</router-link>
+            <router-link to="/register">{{ $t('nav.register') }}</router-link>
+            <router-link to="/dashboard">{{ $t('nav.dashboard') }}</router-link>
           </div>
           <div class="footer-links">
-            <h4>Support</h4>
-            <router-link to="/contact">Contact</router-link>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
+            <h4>{{ $t('footer.support') }}</h4>
+            <router-link to="/contact">{{ $t('footer.contact') }}</router-link>
+            <a href="#">{{ $t('footer.privacy') }}</a>
+            <a href="#">{{ $t('footer.terms') }}</a>
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; 2026 Tattant. All rights reserved.</p>
+          <p>{{ $t('footer.copyright') }}</p>
         </div>
       </div>
     </footer>
@@ -177,27 +175,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../store/auth'
 import AppHeader from '../components/layout/AppHeader.vue'
 
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
-const categories = ref([])
-const businessCount = ref(0)
-const categoryCount = ref(0)
+const businessCount = ref(150)
+const categoryCount = ref(6)
 
-onMounted(async () => {
-  categories.value = [
-    { id: 1, slug: 'sim-cards', name: 'SIM Cards & WiFi', icon: '📱', description: 'Stay connected with local SIM cards and pocket WiFi' },
-    { id: 2, slug: 'ramen', name: 'Ramen', icon: '🍜', description: 'Discover the best ramen shops across Japan' },
-    { id: 3, slug: 'currency-exchange', name: 'Currency Exchange', icon: '💴', description: 'Find the best rates for currency exchange' },
-    { id: 4, slug: 'temples-shrines', name: 'Temples & Shrines', icon: '⛩️', description: 'Explore sacred temples and shrines' },
-    { id: 5, slug: 'hotels', name: 'Hotels & Ryokan', icon: '🏨', description: 'Traditional and modern accommodations' },
-    { id: 6, slug: 'transportation', name: 'Transportation', icon: '🚄', description: 'Navigate Japan with ease' },
-  ]
-  categoryCount.value = categories.value.length
-  businessCount.value = 150
-})
+const currentLang = computed(() => locale.value)
+
+const switchLang = (lang) => {
+  locale.value = lang
+  localStorage.setItem('locale', lang)
+}
+
+const categories = computed(() => [
+  { id: 1, slug: 'sim-cards', name: t('category.simCards'), icon: '�', description: t('category.simCardsDesc') },
+  { id: 2, slug: 'ramen', name: t('category.ramen'), icon: '🍜', description: t('category.ramenDesc') },
+  { id: 3, slug: 'sushi', name: t('category.sushi'), icon: '🍣', description: t('category.sushiDesc') },
+  { id: 4, slug: 'yakiniku', name: t('category.yakiniku'), icon: '🥩', description: t('category.yakinikuDesc') },
+  { id: 5, slug: 'bookstores', name: t('category.bookstores'), icon: '📚', description: t('category.bookstoresDesc') },
+  { id: 6, slug: 'currency-exchange', name: t('category.currencyExchange'), icon: '💱', description: t('category.currencyExchangeDesc') },
+])
 </script>
 
 <style scoped>
@@ -685,13 +687,61 @@ onMounted(async () => {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .category-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .hero {
     min-height: 100vh;
   }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .categories-section,
+  .features-section,
+  .cta-section {
+    padding: 4rem 0;
+  }
+
+  .stats-section {
+    padding: 3rem 0;
+  }
   
   .category-grid {
     grid-template-columns: 1fr;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
   }
   
   .footer-grid {
@@ -706,10 +756,103 @@ onMounted(async () => {
   .cta-card {
     flex-direction: column;
     text-align: center;
+    padding: 2rem;
   }
   
   .cta-subtitle {
     max-width: 100%;
+  }
+
+  .section-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-float {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 1rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .hero-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .section-container {
+    padding: 0 1rem;
+  }
+
+  .section-title {
+    font-size: 1.375rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .categories-section,
+  .features-section,
+  .cta-section {
+    padding: 3rem 0;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .stats-grid {
+    gap: 1rem;
+  }
+
+  .feature-card {
+    padding: 1.75rem;
+  }
+
+  .category-card {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .category-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  .category-icon {
+    font-size: 1.5rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    padding: 2.5rem 0 1.5rem;
+  }
+
+  .cta-title {
+    font-size: 1.375rem;
+  }
+
+  .btn-cta {
+    width: 100%;
+    text-align: center;
+  }
+
+  .language-selector {
+    margin-bottom: 1rem;
   }
 }
 </style>

@@ -1,11 +1,18 @@
 const express = require('express')
 const router = express.Router()
 const categoryController = require('../controllers/categoryController')
+const { authenticate } = require('../middleware/auth')
 
-// Get all categories
+// Admin stats (before /:slug to avoid matching "admin" as slug)
+router.get('/admin/stats', authenticate, categoryController.getCategoryStats)
+
+// Public routes
 router.get('/', categoryController.getAllCategories)
-
-// Get category by slug
 router.get('/:slug', categoryController.getCategoryBySlug)
+
+// Admin write routes
+router.post('/', authenticate, categoryController.createCategory)
+router.put('/:id', authenticate, categoryController.updateCategory)
+router.delete('/:id', authenticate, categoryController.deleteCategory)
 
 module.exports = router

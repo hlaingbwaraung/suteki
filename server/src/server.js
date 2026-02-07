@@ -55,6 +55,11 @@ app.use('/api/categories', require('./routes/categoryRoutes'))
 app.use('/api/businesses', require('./routes/businessRoutes'))
 app.use('/api/favorites', require('./routes/favoriteRoutes'))
 app.use('/api/admin', require('./routes/adminRoutes'))
+app.use('/api/blogs', require('./routes/blogRoutes'))
+app.use('/api/coupons', require('./routes/couponRoutes'))
+app.use('/api/shop-owner', require('./routes/shopOwnerRoutes'))
+app.use('/api/quiz', require('./routes/quizRoutes'))
+app.use('/api/points', require('./routes/pointsRoutes'))
 // app.use('/api/favorites', require('./routes/favoriteRoutes'))
 
 // Error handling middleware

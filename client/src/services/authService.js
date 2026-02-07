@@ -8,8 +8,8 @@ export const register = (userData) => {
   return api.post('/auth/register', userData)
 }
 
-export const googleLogin = (googleToken) => {
-  return api.post('/auth/google', { token: googleToken })
+export const googleLogin = (credential) => {
+  return api.post('/auth/google', { credential })
 }
 
 export const verifyEmail = (token) => {

@@ -7,9 +7,19 @@ const routes = [
     component: () => import('../views/HomePage.vue')
   },
   {
+    path: '/explore',
+    name: 'Explore',
+    component: () => import('../views/ExplorePage.vue')
+  },
+  {
     path: '/categories/:slug',
     name: 'CategoryList',
     component: () => import('../views/CategoryListPage.vue')
+  },
+  {
+    path: '/categories',
+    name: 'Categories',
+    redirect: '/explore'
   },
   {
     path: '/businesses/:id',
@@ -39,6 +49,12 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/shop-owner',
+    name: 'ShopOwnerDashboard',
+    component: () => import('../views/ShopOwnerDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/favorites',
     name: 'Favorites',
     component: () => import('../views/FavoritesPage.vue'),
@@ -51,7 +67,7 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/about',
+    path: '/about-japan',
     name: 'About',
     component: () => import('../views/AboutJapan.vue')
   },
@@ -64,6 +80,23 @@ const routes = [
     path: '/faq',
     name: 'FAQ',
     component: () => import('../views/FAQPage.vue')
+  },
+  {
+    path: '/learn-japanese',
+    name: 'LearnJapanese',
+    component: () => import('../views/JLPTQuizPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/premium',
+    name: 'Premium',
+    component: () => import('../views/PremiumPage.vue')
+  },
+  {
+    path: '/points-shop',
+    name: 'PointsShop',
+    component: () => import('../views/PointsShopPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
