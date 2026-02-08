@@ -886,7 +886,6 @@ async function deleteCoupon(coupon) {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  bg: rgba(0, 0, 0, 0.6);
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
