@@ -1,10 +1,10 @@
-{
+﻿{
   "development": {
-    "url": "postgresql://postgres:Aue46722@localhost:5432/tattant",
+    "url": "postgresql://postgres:Aue46722@localhost:5432/suteki",
     "dialect": "postgres"
   },
   "test": {
-    "url": "postgresql://postgres:Aue46722@localhost:5432/tattant_test",
+    "url": "postgresql://postgres:Aue46722@localhost:5432/suteki_test",
     "dialect": "postgres"
   },
   "production": {

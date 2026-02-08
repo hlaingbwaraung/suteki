@@ -3,7 +3,7 @@
     <div class="header-container">
       <router-link to="/" class="logo">
         <span class="logo-icon">&#127884;</span>
-        <span class="logo-text">Tattant</span>
+        <span class="logo-text">Suteki</span>
       </router-link>
       
       <nav class="nav" :class="{ open: mobileMenuOpen }">

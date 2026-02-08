@@ -1,4 +1,4 @@
-# Quick Database Setup Guide
+﻿# Quick Database Setup Guide
 
 ## Windows Users
 
@@ -8,7 +8,7 @@
 
 2. **Update server/.env with your password**
    ```env
-   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/tattant
+   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/suteki
    DB_PASSWORD=YOUR_PASSWORD
    ```
 
@@ -19,13 +19,13 @@
    ```
 
    This will:
-   - Create the `tattant` database
+   - Create the `suteki` database
    - Run all migrations (create tables)
    - Seed initial data
 
 4. **Verify setup**
    ```bash
-   psql -U postgres -d tattant
+   psql -U postgres -d suteki
    \dt                    # List all tables
    SELECT COUNT(*) FROM businesses;  # Should show ~10
    \q                     # Exit
@@ -46,7 +46,7 @@
 
 2. **Update server/.env with your password**
    ```env
-   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/tattant
+   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/suteki
    DB_PASSWORD=YOUR_PASSWORD
    ```
 
@@ -61,7 +61,7 @@
 
 4. **Verify setup**
    ```bash
-   psql -U postgres -d tattant
+   psql -U postgres -d suteki
    \dt                    # List all tables
    SELECT COUNT(*) FROM businesses;  # Should show ~10
    \q                     # Exit
@@ -72,7 +72,7 @@
 ```bash
 # 1. Create database
 psql -U postgres
-CREATE DATABASE tattant;
+CREATE DATABASE suteki;
 \q
 
 # 2. Run migrations
@@ -86,12 +86,12 @@ npm run db:seed
 ## What Gets Created
 
 **6 Categories:**
-- 📶 Telecom & SIM Cards
-- 🍜 Ramen Restaurants
-- 🍣 Sushi Restaurants
-- 🥩 Yakiniku & BBQ
-- 📚 Book Stores
-- 💱 Currency Exchange
+- ðŸ“¶ Telecom & SIM Cards
+- ðŸœ Ramen Restaurants
+- ðŸ£ Sushi Restaurants
+- ðŸ¥© Yakiniku & BBQ
+- ðŸ“š Book Stores
+- ðŸ’± Currency Exchange
 
 **~10 Sample Businesses:**
 - Sakura Mobile (SIM cards)
@@ -104,7 +104,7 @@ npm run db:seed
 - Travelex (Currency Exchange)
 
 **2 Test Users:**
-- Admin: `admin@tattant.com` / `admin123`
+- Admin: `admin@suteki.com` / `admin123`
 - User: `test@example.com` / `test123`
 
 ## Test the Backend
@@ -132,9 +132,9 @@ curl http://localhost:5000/health
 - Wrong password in `.env`
 - Reset: `ALTER USER postgres WITH PASSWORD 'newpassword';`
 
-### "database tattant already exists"
+### "database suteki already exists"
 - This is fine! Just continue with migrations
-- Or drop and recreate: `DROP DATABASE tattant; CREATE DATABASE tattant;`
+- Or drop and recreate: `DROP DATABASE suteki; CREATE DATABASE suteki;`
 
 ### "relation already exists" during migration
 - Tables already created
@@ -148,11 +148,11 @@ curl http://localhost:5000/health
 
 Once database is set up:
 
-1. ✅ Database is ready
-2. ⏭️ Start the backend: `cd server && npm run dev`
-3. ⏭️ Build authentication controllers
-4. ⏭️ Build API routes
-5. ⏭️ Build frontend components
+1. âœ… Database is ready
+2. â­ï¸ Start the backend: `cd server && npm run dev`
+3. â­ï¸ Build authentication controllers
+4. â­ï¸ Build API routes
+5. â­ï¸ Build frontend components
 
 Or continue to **Phase 2: Backend Core** to implement:
 - Auth controllers (register, login, JWT)

@@ -1,4 +1,4 @@
-'use strict'
+﻿'use strict'
 const { v4: uuidv4 } = require('uuid')
 const bcrypt = require('bcryptjs')
 
@@ -9,7 +9,7 @@ module.exports = {
     const users = [
       {
         id: uuidv4(),
-        email: 'admin@tattant.com',
+        email: 'admin@suteki.com',
         password_hash: hashedPassword,
         google_id: null,
         name: 'Admin User',
@@ -39,7 +39,7 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.bulkDelete('users', {
       email: {
-        [Sequelize.Op.in]: ['admin@tattant.com', 'test@example.com']
+        [Sequelize.Op.in]: ['admin@suteki.com', 'test@example.com']
       }
     }, {})
   }

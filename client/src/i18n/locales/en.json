@@ -1,4 +1,4 @@
-{
+﻿{
   "nav": {
     "home": "Home",
     "explore": "Explore",
@@ -34,7 +34,7 @@
     "statsCategories": "Categories",
     "statsLanguages": "Languages",
     "statsRating": "Rating",
-    "featuredTitle": "Why Choose Tattant",
+    "featuredTitle": "Why Choose Suteki",
     "featuredSubtitle": "We make your Japan journey effortless",
     "featureCurated": "Curated Selection",
     "featureCuratedDesc": "Hand-picked businesses and services vetted for quality and authenticity",
@@ -43,7 +43,7 @@
     "featurePremium": "Premium Experience",
     "featurePremiumDesc": "Luxury recommendations tailored to discerning travelers",
     "ctaTitle": "Ready to Explore Japan?",
-    "ctaSubtitle": "Join thousands of travelers who trust Tattant for their Japan adventures",
+    "ctaSubtitle": "Join thousands of travelers who trust Suteki for their Japan adventures",
     "ctaButton": "Start Free Today",
     "categories": "Browse by Category",
     "featured": "Featured Businesses"
@@ -58,7 +58,7 @@
     "saveFavorites": "Save your favorite places",
     "personalizedRecs": "Personalized recommendations",
     "exclusiveContent": "Exclusive member content",
-    "joinTitle": "Join Tattant",
+    "joinTitle": "Join Suteki",
     "joinSubtitle": "Create your account and start exploring Japan like never before",
     "createAccount": "Create Account",
     "creatingAccount": "Creating account...",
@@ -95,7 +95,7 @@
     "signInHere": "Sign in here",
     "registerNow": "Register now",
     "loginNow": "Login now",
-    "backToHome": "← Back to Home"
+    "backToHome": "â† Back to Home"
   },
   "business": {
     "viewDetails": "View Details",
@@ -170,7 +170,7 @@
     "practical": "Practical",
     "loadingBlogs": "Loading blogs...",
     "noBlogs": "No blogs available yet. Check back soon!",
-    "footerText": "© 2026 Tattant. Your Premium Japan Guide."
+    "footerText": "Â© 2026 Suteki. Your Premium Japan Guide."
   },
   "filters": {
     "search": "Search",
@@ -222,11 +222,11 @@
     "contact": "Contact",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "copyright": "© 2026 Tattant. All rights reserved."
+    "copyright": "Â© 2026 Suteki. All rights reserved."
   },
   "jlpt": {
     "badge": "JLPT N3 Quiz",
-    "title": "Learn Japanese —",
+    "title": "Learn Japanese â€”",
     "titleHighlight": "JLPT N3",
     "subtitle": "Master kanji readings through fun card quiz games",
     "premiumOnly": "Premium Feature",
@@ -259,7 +259,7 @@
     "noScoresYet": "No scores yet. Be the first to play!",
     "beFirst": "Take the Quiz",
     "yourBest": "Your Personal Best",
-    "perfect": "Perfect! You're a kanji master! 🎌",
+    "perfect": "Perfect! You're a kanji master! ðŸŽŒ",
     "excellent": "Excellent! Almost perfect!",
     "good": "Good job! Keep it up!",
     "keepPracticing": "Not bad! Keep practicing!",
@@ -276,7 +276,7 @@
     "monthlyPlan": "Monthly Plan",
     "lifetimePlan": "Lifetime Plan",
     "monthlyDesc": "Perfect for trying out premium features",
-    "lifetimeDesc": "Best value — pay once, access forever",
+    "lifetimeDesc": "Best value â€” pay once, access forever",
     "month": "month",
     "oneTime": "one-time payment",
     "feature1": "JLPT N3 Kanji Quiz",
@@ -294,10 +294,10 @@
     "expiry": "Expiry",
     "cvc": "CVC",
     "scanQR": "Scan the QR code to pay",
-    "demoNote": "This is a demo — payment will be simulated",
+    "demoNote": "This is a demo â€” payment will be simulated",
     "payNow": "Pay Now",
     "processing": "Processing...",
-    "welcomePremium": "🎉 Welcome to Premium!",
+    "welcomePremium": "ðŸŽ‰ Welcome to Premium!",
     "successMessage": "Your premium access has been activated. Enjoy unlimited Japanese learning!",
     "startLearning": "Start Learning Japanese",
     "alreadyPremium": "You're Already Premium!",

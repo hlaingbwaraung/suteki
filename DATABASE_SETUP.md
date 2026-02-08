@@ -1,4 +1,4 @@
-# Database Setup Guide
+﻿# Database Setup Guide
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ sudo systemctl start postgresql
 psql -U postgres
 
 # Inside psql, create the database
-CREATE DATABASE tattant;
+CREATE DATABASE suteki;
 
 # Verify
 \l
@@ -46,7 +46,7 @@ CREATE DATABASE tattant;
 1. Open pgAdmin
 2. Right-click "Databases"
 3. Select "Create" > "Database"
-4. Name: `tattant`
+4. Name: `suteki`
 5. Click "Save"
 
 ## Step 2: Configure Environment Variables
@@ -54,10 +54,10 @@ CREATE DATABASE tattant;
 Update `server/.env` with your PostgreSQL credentials:
 
 ```env
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/tattant
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/suteki
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=tattant
+DB_NAME=suteki
 DB_USER=postgres
 DB_PASSWORD=YOUR_PASSWORD
 ```
@@ -88,7 +88,7 @@ This will populate:
 
 ```bash
 # Connect to database
-psql -U postgres -d tattant
+psql -U postgres -d suteki
 
 # Check tables
 \dt
@@ -115,8 +115,8 @@ SELECT COUNT(*) FROM businesses;
 - Double-check your password in `.env`
 - Reset password: `ALTER USER postgres WITH PASSWORD 'newpassword';`
 
-### "database tattant does not exist"
-- Run `CREATE DATABASE tattant;` in psql first
+### "database suteki does not exist"
+- Run `CREATE DATABASE suteki;` in psql first
 
 ### Port 5432 already in use
 - Another PostgreSQL instance is running
