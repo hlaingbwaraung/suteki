@@ -41,7 +41,22 @@
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                 <path d="M9 12l2 2 4-4"/>
               </svg>
-              {{ $t('jlpt.quizTab') }}
+              Kanji Quiz
+            </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'similar' }" @click="activeTab = 'similar'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+              Similar Kanji
+            </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'grammar' }" @click="activeTab = 'grammar'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Grammar
             </button>
             <button class="tab-btn" :class="{ active: activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'; fetchLeaderboard()">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -60,6 +75,23 @@
                 <div class="start-icon">🎴</div>
                 <h2>{{ $t('jlpt.kanjiSoundQuiz') }}</h2>
                 <p>{{ $t('jlpt.quizDescription') }}</p>
+                
+                <!-- JLPT Level Selector -->
+                <div class="level-selector">
+                  <label class="level-label">Select Level:</label>
+                  <div class="level-buttons">
+                    <button v-for="lvl in ['N5','N4','N3','N2','N1']" :key="lvl" class="level-btn" :class="{ active: selectedLevel === lvl }" @click="selectedLevel = lvl">
+                      {{ lvl }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Keyboard Hint -->
+                <div class="keyboard-hint">
+                  <span class="hint-icon">⌨️</span>
+                  <span>Press <kbd>1</kbd>-<kbd>4</kbd> or <kbd>A</kbd>-<kbd>D</kbd> to answer</span>
+                </div>
+                
                 <div class="quiz-rules">
                   <div class="rule">
                     <span class="rule-num">10</span>
@@ -100,6 +132,30 @@
                 <span class="timer-text">{{ timeLeft }}s</span>
               </div>
 
+              <!-- NEW: Combo Counter -->
+              <Transition name="combo">
+                <div v-if="comboCount >= 3" class="combo-badge" :class="{ 'mega-combo': comboCount >= 5 }">
+                  <span class="combo-icon">🔥</span>
+                  <span class="combo-text">{{ comboCount }}x COMBO!</span>
+                </div>
+              </Transition>
+
+              <!-- NEW: Session Stats Widget -->
+              <div class="session-stats-widget">
+                <div class="stat-mini">
+                  <span class="stat-icon">📊</span>
+                  <span class="stat-value">{{ sessionStats.questionsAnswered > 0 ? Math.round((sessionStats.correctAnswers / sessionStats.questionsAnswered) * 100) : 0 }}%</span>
+                </div>
+                <div class="stat-mini">
+                  <span class="stat-icon">⚡</span>
+                  <span class="stat-value">{{ sessionStats.currentStreak }}</span>
+                </div>
+                <div class="stat-mini">
+                  <span class="stat-icon">🏅</span>
+                  <span class="stat-value">{{ sessionStats.bestStreak }}</span>
+                </div>
+              </div>
+
               <!-- Question Card -->
               <div class="question-card" :class="{ 'card-flip': isFlipping }">
                 <div class="question-label">{{ $t('jlpt.whatReading') }}</div>
@@ -123,6 +179,7 @@
                 >
                   <span class="answer-key">{{ ['A', 'B', 'C', 'D'][idx] }}</span>
                   <span class="answer-text">{{ option }}</span>
+                  <span class="answer-shortcut">{{ idx + 1 }}</span>
                 </button>
               </div>
 
@@ -178,7 +235,8 @@
                   <div class="review-list">
                     <div v-for="(item, idx) in wrongAnswers" :key="idx" class="review-item">
                       <span class="review-kanji">{{ item.kanji }}</span>
-                      <span class="review-answer">{{ item.correctReading }}</span>
+                      <span class="review-wrong">✗ {{ item.userAnswer }}</span>
+                      <span class="review-correct">✓ {{ item.correctReading }}</span>
                       <span class="review-meaning">{{ item.meaning }}</span>
                     </div>
                   </div>
@@ -218,8 +276,8 @@
               <div class="lb-row lb-header-row">
                 <span class="lb-rank">#</span>
                 <span class="lb-name">{{ $t('jlpt.player') }}</span>
-                <span class="lb-score">{{ $t('jlpt.score') }}</span>
-                <span class="lb-date">{{ $t('jlpt.date') }}</span>
+                <span class="lb-score">Total</span>
+                <span class="lb-date">Games</span>
               </div>
               <div
                 v-for="(entry, idx) in leaderboard"
@@ -237,15 +295,247 @@
                   <span class="lb-avatar">{{ entry.user_name?.charAt(0).toUpperCase() || '?' }}</span>
                   {{ entry.user_name || 'Anonymous' }}
                 </span>
-                <span class="lb-score">{{ entry.score }}/10</span>
-                <span class="lb-date">{{ formatDate(entry.created_at) }}</span>
+                <span class="lb-score">{{ entry.total_score || entry.score || 0 }}</span>
+                <span class="lb-date">{{ entry.quiz_types_played || 1 }} types</span>
               </div>
             </div>
 
             <!-- Personal Best -->
             <div v-if="personalBest !== null" class="personal-best">
-              <span class="pb-label">{{ $t('jlpt.yourBest') }}</span>
-              <span class="pb-score">{{ personalBest }}/10</span>
+              <span class="pb-label">Your Total Best</span>
+              <span class="pb-score">{{ personalBest }} pts</span>
+            </div>
+          </div>
+
+          <!-- SIMILAR KANJI QUIZ TAB -->
+          <div v-if="activeTab === 'similar'" class="quiz-panel">
+            <!-- Start Screen -->
+            <div v-if="similarState === 'idle'" class="start-screen">
+              <div class="start-card">
+                <div class="start-icon">👀</div>
+                <h2>Similar Kanji Quiz</h2>
+                <p>Can you tell apart kanji that look almost identical? Pick the correct one!</p>
+                
+                <!-- JLPT Level Selector -->
+                <div class="level-selector">
+                  <label class="level-label">Select Level:</label>
+                  <div class="level-buttons">
+                    <button v-for="lvl in ['N5','N4','N3','N2','N1']" :key="lvl" class="level-btn" :class="{ active: similarLevel === lvl }" @click="similarLevel = lvl">
+                      {{ lvl }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="quiz-rules">
+                  <div class="rule"><span class="rule-num">10</span><span>Questions</span></div>
+                  <div class="rule"><span class="rule-num">4</span><span>Look-alikes</span></div>
+                  <div class="rule"><span class="rule-num">⏱</span><span>15s per Q</span></div>
+                </div>
+                <button class="btn-start" @click="startSimilarGame">
+                  Start Quiz
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Playing -->
+            <div v-else-if="similarState === 'playing'" class="game-area">
+              <div class="progress-section">
+                <div class="progress-info">
+                  <span class="round-label">Question {{ similarRound }}/10</span>
+                  <span class="score-label">Score: {{ similarScore }}/{{ similarRound - 1 }}</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" :style="{ width: `${(similarRound / 10) * 100}%` }"></div></div>
+                <div class="timer-bar"><div class="timer-fill" :class="{ warning: similarTimeLeft <= 5, danger: similarTimeLeft <= 3 }" :style="{ width: `${(similarTimeLeft / 15) * 100}%` }"></div></div>
+                <span class="timer-text">{{ similarTimeLeft }}s</span>
+              </div>
+
+              <div class="question-card">
+                <div class="question-label">Which kanji means:</div>
+                <div class="kanji-meaning-prompt">{{ similarQuestion.meaning }}</div>
+                <div class="kanji-reading-hint">( {{ similarQuestion.reading }} )</div>
+              </div>
+
+              <div class="answers-grid">
+                <button
+                  v-for="(option, idx) in similarQuestion.options"
+                  :key="idx"
+                  class="answer-btn answer-btn-kanji"
+                  :class="{
+                    correct: similarAnswered && option === similarQuestion.correct,
+                    wrong: similarAnswered && similarSelected === option && option !== similarQuestion.correct,
+                    disabled: similarAnswered
+                  }"
+                  :disabled="similarAnswered"
+                  @click="selectSimilarAnswer(option)"
+                >
+                  <span class="answer-key">{{ ['A','B','C','D'][idx] }}</span>
+                  <span class="answer-text kanji-option">{{ option }}</span>
+                </button>
+              </div>
+
+              <Transition name="fade">
+                <div v-if="similarAnswered" class="feedback" :class="similarIsCorrect ? 'correct' : 'wrong'">
+                  <span class="feedback-icon">{{ similarIsCorrect ? '✅' : '❌' }}</span>
+                  <span>{{ similarIsCorrect ? 'Correct!' : 'Wrong! Answer: ' + similarQuestion.correct }}</span>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Results -->
+            <div v-else-if="similarState === 'finished'" class="results-screen">
+              <div class="results-card">
+                <div class="results-emoji">{{ similarScore === 10 ? '🏆' : similarScore >= 8 ? '🌟' : similarScore >= 6 ? '👍' : '📚' }}</div>
+                <h2>Quiz Complete!</h2>
+                <div class="final-score">
+                  <span class="score-number">{{ similarScore }}</span>
+                  <span class="score-divider">/</span>
+                  <span class="score-total">10</span>
+                </div>
+
+                <div v-if="similarWrong.length > 0" class="review-section">
+                  <h3>Review Your Mistakes</h3>
+                  <div class="review-list">
+                    <div v-for="(item, idx) in similarWrong" :key="idx" class="review-item">
+                      <span class="review-kanji">{{ item.correct }}</span>
+                      <span class="review-wrong">✗ {{ item.userAnswer }}</span>
+                      <span class="review-correct">✓ {{ item.correct }}</span>
+                      <span class="review-meaning">{{ item.meaning }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="results-actions">
+                  <button class="btn-start" @click="startSimilarGame">Play Again</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SENTENCE GRAMMAR TAB -->
+          <div v-if="activeTab === 'grammar'" class="quiz-panel">
+            <!-- Start Screen -->
+            <div v-if="grammarState === 'idle'" class="start-screen">
+              <div class="start-card">
+                <div class="start-icon">📝</div>
+                <h2>Sentence Rearrangement</h2>
+                <p>Rearrange the scrambled words to form a correct Japanese sentence!</p>
+                <div class="quiz-rules">
+                  <div class="rule"><span class="rule-num">10</span><span>Sentences</span></div>
+                  <div class="rule"><span class="rule-num">🔀</span><span>Drag / Tap</span></div>
+                  <div class="rule"><span class="rule-num">⏱</span><span>30s per Q</span></div>
+                </div>
+                <button class="btn-start" @click="startGrammarGame">
+                  Start Quiz
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Playing -->
+            <div v-else-if="grammarState === 'playing'" class="game-area">
+              <div class="progress-section">
+                <div class="progress-info">
+                  <span class="round-label">Sentence {{ grammarRound }}/10</span>
+                  <span class="score-label">Score: {{ grammarScore }}/{{ grammarRound - 1 }}</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" :style="{ width: `${(grammarRound / 10) * 100}%` }"></div></div>
+                <div class="timer-bar"><div class="timer-fill" :class="{ warning: grammarTimeLeft <= 10, danger: grammarTimeLeft <= 5 }" :style="{ width: `${(grammarTimeLeft / 30) * 100}%` }"></div></div>
+                <span class="timer-text">{{ grammarTimeLeft }}s</span>
+              </div>
+
+              <div class="question-card">
+                <div class="question-label">Rearrange to form a correct sentence:</div>
+                <div class="grammar-english-hint">🇬🇧 {{ grammarQuestion.english }}</div>
+              </div>
+
+              <!-- Selected words (answer area) -->
+              <div class="grammar-answer-area">
+                <div class="answer-slots">
+                  <button
+                    v-for="(word, idx) in grammarSelected"
+                    :key="'sel-' + idx"
+                    class="word-chip selected"
+                    @click="removeWord(idx)"
+                  >
+                    {{ word }}
+                    <span class="chip-remove">✕</span>
+                  </button>
+                  <span v-if="grammarSelected.length === 0" class="placeholder-text">Tap words below to build the sentence...</span>
+                </div>
+              </div>
+
+              <!-- Available words -->
+              <div class="grammar-word-pool">
+                <button
+                  v-for="(word, idx) in grammarPool"
+                  :key="'pool-' + idx"
+                  class="word-chip available"
+                  :class="{ used: grammarSelected.includes(word) && grammarPool.filter(w => w === word).indexOf(word) === idx }"
+                  :disabled="isWordUsed(word, idx)"
+                  @click="addWord(word, idx)"
+                >
+                  {{ word }}
+                </button>
+              </div>
+
+              <!-- Submit / Feedback -->
+              <div class="grammar-actions">
+                <button
+                  class="btn-start"
+                  :disabled="grammarSelected.length !== grammarQuestion.correct.length || grammarAnswered"
+                  @click="checkGrammarAnswer"
+                >
+                  Check Answer ✓
+                </button>
+                <button class="btn-secondary" @click="clearGrammarSelection" :disabled="grammarAnswered">
+                  Clear
+                </button>
+              </div>
+
+              <Transition name="fade">
+                <div v-if="grammarAnswered" class="feedback" :class="grammarIsCorrect ? 'correct' : 'wrong'">
+                  <span class="feedback-icon">{{ grammarIsCorrect ? '✅' : '❌' }}</span>
+                  <div class="grammar-feedback-detail">
+                    <span>{{ grammarIsCorrect ? 'Correct!' : 'Incorrect!' }}</span>
+                    <span v-if="!grammarIsCorrect" class="correct-sentence">Correct: {{ grammarQuestion.correct.join('') }}</span>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Results -->
+            <div v-else-if="grammarState === 'finished'" class="results-screen">
+              <div class="results-card">
+                <div class="results-emoji">{{ grammarScore === 10 ? '🏆' : grammarScore >= 8 ? '🌟' : grammarScore >= 6 ? '👍' : '📚' }}</div>
+                <h2>Quiz Complete!</h2>
+                <div class="final-score">
+                  <span class="score-number">{{ grammarScore }}</span>
+                  <span class="score-divider">/</span>
+                  <span class="score-total">10</span>
+                </div>
+
+                <div v-if="grammarWrong.length > 0" class="review-section">
+                  <h3>Review Your Mistakes</h3>
+                  <div class="review-list">
+                    <div v-for="(item, idx) in grammarWrong" :key="idx" class="review-item review-item-grammar">
+                      <div class="review-grammar-row">
+                        <span class="review-wrong">✗ {{ item.userAnswer }}</span>
+                      </div>
+                      <div class="review-grammar-row">
+                        <span class="review-correct">✓ {{ item.correct }}</span>
+                      </div>
+                      <div class="review-grammar-row">
+                        <span class="review-meaning">🇬🇧 {{ item.english }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="results-actions">
+                  <button class="btn-start" @click="startGrammarGame">Play Again</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -260,7 +550,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../store/auth'
 import api from '../services/api'
@@ -269,11 +559,15 @@ import AppHeader from '../components/layout/AppHeader.vue'
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-// Premium check - only premium members can access
-const isPremiumUser = computed(() => authStore.user?.is_premium)
+// Premium check - only premium members and admins can access
+const isPremiumUser = computed(() => authStore.user?.is_premium || authStore.user?.is_admin)
 
 // Tabs
 const activeTab = ref('quiz')
+
+// JLPT Level Selection
+const selectedLevel = ref('N3')
+const similarLevel = ref('N3')
 
 // Game State
 const gameState = ref('idle') // idle | playing | finished
@@ -289,6 +583,17 @@ const timeLeft = ref(15)
 let timerInterval = null
 let usedQuestionIndices = []
 
+// NEW: Session Statistics
+const sessionStats = ref({
+  questionsAnswered: 0,
+  correctAnswers: 0,
+  currentStreak: 0,
+  bestStreak: 0,
+  averageTime: 0
+})
+const comboCount = ref(0)
+const showComboAnimation = ref(false)
+
 // Leaderboard
 const leaderboard = ref([])
 const leaderboardLoading = ref(false)
@@ -299,58 +604,153 @@ const totalPoints = ref(0)
 // ==========================================
 // JLPT N3 Kanji Data — Sound/Reading Quiz
 // ==========================================
-const kanjiData = [
-  { kanji: '会議', correctReading: 'かいぎ', meaning: 'Meeting', wrongReadings: ['かいき', 'かぎ', 'あいぎ'] },
-  { kanji: '経験', correctReading: 'けいけん', meaning: 'Experience', wrongReadings: ['きょうけん', 'けいげん', 'きけん'] },
-  { kanji: '研究', correctReading: 'けんきゅう', meaning: 'Research', wrongReadings: ['けんく', 'げんきゅう', 'けんぐう'] },
-  { kanji: '政治', correctReading: 'せいじ', meaning: 'Politics', wrongReadings: ['しょうじ', 'せいち', 'まさじ'] },
-  { kanji: '産業', correctReading: 'さんぎょう', meaning: 'Industry', wrongReadings: ['さんごう', 'せんぎょう', 'さんきょう'] },
-  { kanji: '自然', correctReading: 'しぜん', meaning: 'Nature', wrongReadings: ['じねん', 'しせん', 'じぜん'] },
-  { kanji: '交通', correctReading: 'こうつう', meaning: 'Traffic', wrongReadings: ['こうとう', 'きょうつう', 'こうずう'] },
-  { kanji: '制度', correctReading: 'せいど', meaning: 'System', wrongReadings: ['しど', 'せいと', 'さいど'] },
-  { kanji: '技術', correctReading: 'ぎじゅつ', meaning: 'Technology', wrongReadings: ['きじゅつ', 'ぎじつ', 'きしゅつ'] },
-  { kanji: '教育', correctReading: 'きょういく', meaning: 'Education', wrongReadings: ['きゅういく', 'きょうく', 'こういく'] },
-  { kanji: '関係', correctReading: 'かんけい', meaning: 'Relationship', wrongReadings: ['かんかい', 'かんけ', 'がんけい'] },
-  { kanji: '反対', correctReading: 'はんたい', meaning: 'Opposite', wrongReadings: ['はんだい', 'ほんたい', 'ばんたい'] },
-  { kanji: '問題', correctReading: 'もんだい', meaning: 'Problem', wrongReadings: ['もだい', 'もんてい', 'とだい'] },
-  { kanji: '決定', correctReading: 'けってい', meaning: 'Decision', wrongReadings: ['けつてい', 'けつじょう', 'きめてい'] },
-  { kanji: '規則', correctReading: 'きそく', meaning: 'Rule', wrongReadings: ['きぞく', 'きのり', 'ぐそく'] },
-  { kanji: '記念', correctReading: 'きねん', meaning: 'Memorial', wrongReadings: ['きめん', 'きなん', 'きえん'] },
-  { kanji: '相談', correctReading: 'そうだん', meaning: 'Consultation', wrongReadings: ['あいだん', 'そうたん', 'しょうだん'] },
-  { kanji: '設計', correctReading: 'せっけい', meaning: 'Design/Plan', wrongReadings: ['せつけい', 'もうけい', 'せきけい'] },
-  { kanji: '調査', correctReading: 'ちょうさ', meaning: 'Investigation', wrongReadings: ['しらべさ', 'ちょうし', 'きょうさ'] },
-  { kanji: '成功', correctReading: 'せいこう', meaning: 'Success', wrongReadings: ['なりこう', 'じょうこう', 'せいく'] },
-  { kanji: '失敗', correctReading: 'しっぱい', meaning: 'Failure', wrongReadings: ['しつはい', 'しっぱ', 'しばい'] },
-  { kanji: '練習', correctReading: 'れんしゅう', meaning: 'Practice', wrongReadings: ['ねりしゅう', 'れんしう', 'ねんしゅう'] },
-  { kanji: '準備', correctReading: 'じゅんび', meaning: 'Preparation', wrongReadings: ['しゅんび', 'じゅんぴ', 'じゅんべ'] },
-  { kanji: '説明', correctReading: 'せつめい', meaning: 'Explanation', wrongReadings: ['しょうめい', 'せつめ', 'せいめい'] },
-  { kanji: '約束', correctReading: 'やくそく', meaning: 'Promise', wrongReadings: ['やくしょく', 'やくたば', 'わくそく'] },
-  { kanji: '注意', correctReading: 'ちゅうい', meaning: 'Caution', wrongReadings: ['ちゅうぎ', 'そそい', 'じゅうい'] },
-  { kanji: '想像', correctReading: 'そうぞう', meaning: 'Imagination', wrongReadings: ['しょうぞう', 'そうじょう', 'おもぞう'] },
-  { kanji: '表現', correctReading: 'ひょうげん', meaning: 'Expression', wrongReadings: ['おもてげん', 'ひょうけん', 'ひょうえん'] },
-  { kanji: '連絡', correctReading: 'れんらく', meaning: 'Contact', wrongReadings: ['つらなりらく', 'れんらき', 'ねんらく'] },
-  { kanji: '努力', correctReading: 'どりょく', meaning: 'Effort', wrongReadings: ['ぬりょく', 'どりき', 'のりょく'] },
-  { kanji: '確認', correctReading: 'かくにん', meaning: 'Confirmation', wrongReadings: ['たしにん', 'きゃくにん', 'かくじん'] },
-  { kanji: '影響', correctReading: 'えいきょう', meaning: 'Influence', wrongReadings: ['かげひびき', 'えきょう', 'いんきょう'] },
-  { kanji: '経済', correctReading: 'けいざい', meaning: 'Economy', wrongReadings: ['きょうざい', 'けいさい', 'けざい'] },
-  { kanji: '選挙', correctReading: 'せんきょ', meaning: 'Election', wrongReadings: ['えらぶきょ', 'せんこ', 'ぜんきょ'] },
-  { kanji: '比較', correctReading: 'ひかく', meaning: 'Comparison', wrongReadings: ['くらべかく', 'ひこう', 'ひがく'] },
-  { kanji: '退院', correctReading: 'たいいん', meaning: 'Leave hospital', wrongReadings: ['たいえん', 'だいいん', 'しりぞきいん'] },
-  { kanji: '貿易', correctReading: 'ぼうえき', meaning: 'Trade', wrongReadings: ['もうえき', 'ぼうやく', 'ぼうき'] },
-  { kanji: '講演', correctReading: 'こうえん', meaning: 'Lecture', wrongReadings: ['きょうえん', 'こうべん', 'こえん'] },
-  { kanji: '参加', correctReading: 'さんか', meaning: 'Participation', wrongReadings: ['さんが', 'まいか', 'しんか'] },
-  { kanji: '複雑', correctReading: 'ふくざつ', meaning: 'Complicated', wrongReadings: ['おくざつ', 'ふくさつ', 'ふくぞう'] },
-  { kanji: '環境', correctReading: 'かんきょう', meaning: 'Environment', wrongReadings: ['かんけい', 'わんきょう', 'かんぎょう'] },
-  { kanji: '伝統', correctReading: 'でんとう', meaning: 'Tradition', wrongReadings: ['つたとう', 'でんすべ', 'てんとう'] },
-  { kanji: '独立', correctReading: 'どくりつ', meaning: 'Independence', wrongReadings: ['ひとりりつ', 'どくり', 'どくだち'] },
-  { kanji: '完成', correctReading: 'かんせい', meaning: 'Completion', wrongReadings: ['かんじょう', 'まんせい', 'がんせい'] },
-  { kanji: '観光', correctReading: 'かんこう', meaning: 'Sightseeing', wrongReadings: ['みこう', 'かんみつ', 'がんこう'] },
-  { kanji: '必要', correctReading: 'ひつよう', meaning: 'Necessary', wrongReadings: ['かなよう', 'ひつやく', 'びつよう'] },
-  { kanji: '適当', correctReading: 'てきとう', meaning: 'Suitable', wrongReadings: ['まとあてる', 'てきど', 'できとう'] },
-  { kanji: '発展', correctReading: 'はってん', meaning: 'Development', wrongReadings: ['はつてん', 'ほってん', 'はつのべ'] },
-  { kanji: '判断', correctReading: 'はんだん', meaning: 'Judgment', wrongReadings: ['ばんだん', 'はんたん', 'はぜん'] },
-  { kanji: '禁止', correctReading: 'きんし', meaning: 'Prohibition', wrongReadings: ['きんじ', 'ぎんし', 'こんし'] },
-]
+// ==========================================
+// KANJI DATA BY JLPT LEVEL
+// ==========================================
+const kanjiByLevel = {
+  N5: [
+    { kanji: '食べる', correctReading: 'たべる', meaning: 'To eat', wrongReadings: ['しょくべる', 'くべる', 'たぶる'] },
+    { kanji: '飲む', correctReading: 'のむ', meaning: 'To drink', wrongReadings: ['いんむ', 'のめ', 'のぶ'] },
+    { kanji: '見る', correctReading: 'みる', meaning: 'To see', wrongReadings: ['けんる', 'みえる', 'にる'] },
+    { kanji: '聞く', correctReading: 'きく', meaning: 'To listen', wrongReadings: ['ぶんく', 'もんく', 'きこ'] },
+    { kanji: '読む', correctReading: 'よむ', meaning: 'To read', wrongReadings: ['どくむ', 'よぶ', 'とむ'] },
+    { kanji: '書く', correctReading: 'かく', meaning: 'To write', wrongReadings: ['しょく', 'がく', 'かき'] },
+    { kanji: '話す', correctReading: 'はなす', meaning: 'To speak', wrongReadings: ['わす', 'かたす', 'はなし'] },
+    { kanji: '買う', correctReading: 'かう', meaning: 'To buy', wrongReadings: ['ばいう', 'かい', 'まう'] },
+    { kanji: '入る', correctReading: 'はいる', meaning: 'To enter', wrongReadings: ['いる', 'にゅうる', 'いれる'] },
+    { kanji: '出る', correctReading: 'でる', meaning: 'To exit', wrongReadings: ['しゅつる', 'だる', 'だす'] },
+    { kanji: '学校', correctReading: 'がっこう', meaning: 'School', wrongReadings: ['がくこう', 'がっきょう', 'まなこう'] },
+    { kanji: '先生', correctReading: 'せんせい', meaning: 'Teacher', wrongReadings: ['さきせい', 'せんしょう', 'せいせん'] },
+    { kanji: '大学', correctReading: 'だいがく', meaning: 'University', wrongReadings: ['おおがく', 'たいがく', 'だいまな'] },
+    { kanji: '電話', correctReading: 'でんわ', meaning: 'Telephone', wrongReadings: ['でんは', 'てんわ', 'かみなりわ'] },
+    { kanji: '時間', correctReading: 'じかん', meaning: 'Time', wrongReadings: ['ときま', 'しかん', 'じけん'] },
+    { kanji: '友達', correctReading: 'ともだち', meaning: 'Friend', wrongReadings: ['ゆうだち', 'ゆうたつ', 'ともたち'] },
+    { kanji: '天気', correctReading: 'てんき', meaning: 'Weather', wrongReadings: ['あまき', 'てんけ', 'てんぎ'] },
+    { kanji: '毎日', correctReading: 'まいにち', meaning: 'Every day', wrongReadings: ['まいび', 'まいひ', 'まいじつ'] },
+    { kanji: '今日', correctReading: 'きょう', meaning: 'Today', wrongReadings: ['こんにち', 'いまにち', 'こんじつ'] },
+    { kanji: '来年', correctReading: 'らいねん', meaning: 'Next year', wrongReadings: ['きねん', 'くねん', 'らいとし'] },
+  ],
+  N4: [
+    { kanji: '開ける', correctReading: 'あける', meaning: 'To open', wrongReadings: ['かいける', 'ひらける', 'あく'] },
+    { kanji: '届ける', correctReading: 'とどける', meaning: 'To deliver', wrongReadings: ['かいける', 'つける', 'わたける'] },
+    { kanji: '届く', correctReading: 'とどく', meaning: 'To arrive/reach', wrongReadings: ['かいく', 'つく', 'わたく'] },
+    { kanji: '引っ越す', correctReading: 'ひっこす', meaning: 'To move (house)', wrongReadings: ['いんこす', 'ひきこす', 'ひこす'] },
+    { kanji: '建てる', correctReading: 'たてる', meaning: 'To build', wrongReadings: ['けんてる', 'じてる', 'かてる'] },
+    { kanji: '受ける', correctReading: 'うける', meaning: 'To receive', wrongReadings: ['じゅける', 'おける', 'つける'] },
+    { kanji: '運転', correctReading: 'うんてん', meaning: 'Driving', wrongReadings: ['うんでん', 'うてん', 'えんてん'] },
+    { kanji: '特別', correctReading: 'とくべつ', meaning: 'Special', wrongReadings: ['とっべつ', 'どくべつ', 'とくわけ'] },
+    { kanji: '季節', correctReading: 'きせつ', meaning: 'Season', wrongReadings: ['きぶし', 'きせち', 'しせつ'] },
+    { kanji: '文化', correctReading: 'ぶんか', meaning: 'Culture', wrongReadings: ['もんか', 'ぶんけ', 'もじか'] },
+    { kanji: '番組', correctReading: 'ばんぐみ', meaning: 'TV program', wrongReadings: ['ばんくみ', 'ばんそ', 'はんくみ'] },
+    { kanji: '国際', correctReading: 'こくさい', meaning: 'International', wrongReadings: ['くにさい', 'こくざい', 'こくせい'] },
+    { kanji: '生活', correctReading: 'せいかつ', meaning: 'Life/Living', wrongReadings: ['しょうかつ', 'なまかつ', 'せいこう'] },
+    { kanji: '理由', correctReading: 'りゆう', meaning: 'Reason', wrongReadings: ['りゅう', 'りゆ', 'わけゆう'] },
+    { kanji: '世界', correctReading: 'せかい', meaning: 'World', wrongReadings: ['よかい', 'せいかい', 'しかい'] },
+    { kanji: '台風', correctReading: 'たいふう', meaning: 'Typhoon', wrongReadings: ['だいかぜ', 'たいかぜ', 'だいふう'] },
+    { kanji: '地震', correctReading: 'じしん', meaning: 'Earthquake', wrongReadings: ['ちしん', 'じふるえ', 'ちふるえ'] },
+    { kanji: '経験', correctReading: 'けいけん', meaning: 'Experience', wrongReadings: ['きょうけん', 'けいげん', 'きけん'] },
+    { kanji: '安全', correctReading: 'あんぜん', meaning: 'Safety', wrongReadings: ['やすぜん', 'あんせん', 'あんまん'] },
+    { kanji: '無理', correctReading: 'むり', meaning: 'Impossible', wrongReadings: ['ぶり', 'なしり', 'むわり'] },
+  ],
+  N3: [
+    { kanji: '会議', correctReading: 'かいぎ', meaning: 'Meeting', wrongReadings: ['かいき', 'かぎ', 'あいぎ'] },
+    { kanji: '研究', correctReading: 'けんきゅう', meaning: 'Research', wrongReadings: ['けんく', 'げんきゅう', 'けんぐう'] },
+    { kanji: '政治', correctReading: 'せいじ', meaning: 'Politics', wrongReadings: ['しょうじ', 'せいち', 'まさじ'] },
+    { kanji: '産業', correctReading: 'さんぎょう', meaning: 'Industry', wrongReadings: ['さんごう', 'せんぎょう', 'さんきょう'] },
+    { kanji: '自然', correctReading: 'しぜん', meaning: 'Nature', wrongReadings: ['じねん', 'しせん', 'じぜん'] },
+    { kanji: '交通', correctReading: 'こうつう', meaning: 'Traffic', wrongReadings: ['こうとう', 'きょうつう', 'こうずう'] },
+    { kanji: '制度', correctReading: 'せいど', meaning: 'System', wrongReadings: ['しど', 'せいと', 'さいど'] },
+    { kanji: '技術', correctReading: 'ぎじゅつ', meaning: 'Technology', wrongReadings: ['きじゅつ', 'ぎじつ', 'きしゅつ'] },
+    { kanji: '教育', correctReading: 'きょういく', meaning: 'Education', wrongReadings: ['きゅういく', 'きょうく', 'こういく'] },
+    { kanji: '関係', correctReading: 'かんけい', meaning: 'Relationship', wrongReadings: ['かんかい', 'かんけ', 'がんけい'] },
+    { kanji: '反対', correctReading: 'はんたい', meaning: 'Opposite', wrongReadings: ['はんだい', 'ほんたい', 'ばんたい'] },
+    { kanji: '問題', correctReading: 'もんだい', meaning: 'Problem', wrongReadings: ['もだい', 'もんてい', 'とだい'] },
+    { kanji: '決定', correctReading: 'けってい', meaning: 'Decision', wrongReadings: ['けつてい', 'けつじょう', 'きめてい'] },
+    { kanji: '規則', correctReading: 'きそく', meaning: 'Rule', wrongReadings: ['きぞく', 'きのり', 'ぐそく'] },
+    { kanji: '記念', correctReading: 'きねん', meaning: 'Memorial', wrongReadings: ['きめん', 'きなん', 'きえん'] },
+    { kanji: '相談', correctReading: 'そうだん', meaning: 'Consultation', wrongReadings: ['あいだん', 'そうたん', 'しょうだん'] },
+    { kanji: '設計', correctReading: 'せっけい', meaning: 'Design/Plan', wrongReadings: ['せつけい', 'もうけい', 'せきけい'] },
+    { kanji: '調査', correctReading: 'ちょうさ', meaning: 'Investigation', wrongReadings: ['しらべさ', 'ちょうし', 'きょうさ'] },
+    { kanji: '成功', correctReading: 'せいこう', meaning: 'Success', wrongReadings: ['なりこう', 'じょうこう', 'せいく'] },
+    { kanji: '失敗', correctReading: 'しっぱい', meaning: 'Failure', wrongReadings: ['しつはい', 'しっぱ', 'しばい'] },
+    { kanji: '練習', correctReading: 'れんしゅう', meaning: 'Practice', wrongReadings: ['ねりしゅう', 'れんしう', 'ねんしゅう'] },
+    { kanji: '準備', correctReading: 'じゅんび', meaning: 'Preparation', wrongReadings: ['しゅんび', 'じゅんぴ', 'じゅんべ'] },
+    { kanji: '説明', correctReading: 'せつめい', meaning: 'Explanation', wrongReadings: ['しょうめい', 'せつめ', 'せいめい'] },
+    { kanji: '約束', correctReading: 'やくそく', meaning: 'Promise', wrongReadings: ['やくしょく', 'やくたば', 'わくそく'] },
+    { kanji: '注意', correctReading: 'ちゅうい', meaning: 'Caution', wrongReadings: ['ちゅうぎ', 'そそい', 'じゅうい'] },
+    { kanji: '想像', correctReading: 'そうぞう', meaning: 'Imagination', wrongReadings: ['しょうぞう', 'そうじょう', 'おもぞう'] },
+    { kanji: '表現', correctReading: 'ひょうげん', meaning: 'Expression', wrongReadings: ['おもてげん', 'ひょうけん', 'ひょうえん'] },
+    { kanji: '連絡', correctReading: 'れんらく', meaning: 'Contact', wrongReadings: ['つらなりらく', 'れんらき', 'ねんらく'] },
+    { kanji: '努力', correctReading: 'どりょく', meaning: 'Effort', wrongReadings: ['ぬりょく', 'どりき', 'のりょく'] },
+    { kanji: '確認', correctReading: 'かくにん', meaning: 'Confirmation', wrongReadings: ['たしにん', 'きゃくにん', 'かくじん'] },
+    { kanji: '影響', correctReading: 'えいきょう', meaning: 'Influence', wrongReadings: ['かげひびき', 'えきょう', 'いんきょう'] },
+    { kanji: '経済', correctReading: 'けいざい', meaning: 'Economy', wrongReadings: ['きょうざい', 'けいさい', 'けざい'] },
+    { kanji: '選挙', correctReading: 'せんきょ', meaning: 'Election', wrongReadings: ['えらぶきょ', 'せんこ', 'ぜんきょ'] },
+    { kanji: '比較', correctReading: 'ひかく', meaning: 'Comparison', wrongReadings: ['くらべかく', 'ひこう', 'ひがく'] },
+    { kanji: '退院', correctReading: 'たいいん', meaning: 'Leave hospital', wrongReadings: ['たいえん', 'だいいん', 'しりぞきいん'] },
+    { kanji: '貿易', correctReading: 'ぼうえき', meaning: 'Trade', wrongReadings: ['もうえき', 'ぼうやく', 'ぼうき'] },
+    { kanji: '講演', correctReading: 'こうえん', meaning: 'Lecture', wrongReadings: ['きょうえん', 'こうべん', 'こえん'] },
+    { kanji: '参加', correctReading: 'さんか', meaning: 'Participation', wrongReadings: ['さんが', 'まいか', 'しんか'] },
+    { kanji: '複雑', correctReading: 'ふくざつ', meaning: 'Complicated', wrongReadings: ['おくざつ', 'ふくさつ', 'ふくぞう'] },
+    { kanji: '環境', correctReading: 'かんきょう', meaning: 'Environment', wrongReadings: ['かんけい', 'わんきょう', 'かんぎょう'] },
+    { kanji: '伝統', correctReading: 'でんとう', meaning: 'Tradition', wrongReadings: ['つたとう', 'でんすべ', 'てんとう'] },
+    { kanji: '独立', correctReading: 'どくりつ', meaning: 'Independence', wrongReadings: ['ひとりりつ', 'どくり', 'どくだち'] },
+    { kanji: '完成', correctReading: 'かんせい', meaning: 'Completion', wrongReadings: ['かんじょう', 'まんせい', 'がんせい'] },
+    { kanji: '観光', correctReading: 'かんこう', meaning: 'Sightseeing', wrongReadings: ['みこう', 'かんみつ', 'がんこう'] },
+    { kanji: '必要', correctReading: 'ひつよう', meaning: 'Necessary', wrongReadings: ['かなよう', 'ひつやく', 'びつよう'] },
+    { kanji: '適当', correctReading: 'てきとう', meaning: 'Suitable', wrongReadings: ['まとあてる', 'てきど', 'できとう'] },
+    { kanji: '発展', correctReading: 'はってん', meaning: 'Development', wrongReadings: ['はつてん', 'ほってん', 'はつのべ'] },
+    { kanji: '判断', correctReading: 'はんだん', meaning: 'Judgment', wrongReadings: ['ばんだん', 'はんたん', 'はぜん'] },
+    { kanji: '禁止', correctReading: 'きんし', meaning: 'Prohibition', wrongReadings: ['きんじ', 'ぎんし', 'こんし'] },
+  ],
+  N2: [
+    { kanji: '維持', correctReading: 'いじ', meaning: 'Maintenance', wrongReadings: ['ゆいじ', 'いち', 'いし'] },
+    { kanji: '概念', correctReading: 'がいねん', meaning: 'Concept', wrongReadings: ['がいめん', 'かいねん', 'がいなん'] },
+    { kanji: '抽象', correctReading: 'ちゅうしょう', meaning: 'Abstract', wrongReadings: ['ちゅうぞう', 'ちゅうしゃ', 'ちゅうじょう'] },
+    { kanji: '脅威', correctReading: 'きょうい', meaning: 'Threat', wrongReadings: ['きょうぎ', 'おどい', 'きょうえ'] },
+    { kanji: '偏見', correctReading: 'へんけん', meaning: 'Prejudice', wrongReadings: ['へんみ', 'かたけん', 'へんげん'] },
+    { kanji: '矛盾', correctReading: 'むじゅん', meaning: 'Contradiction', wrongReadings: ['ほこたて', 'ぼうじゅん', 'むたて'] },
+    { kanji: '曖昧', correctReading: 'あいまい', meaning: 'Ambiguous', wrongReadings: ['あいばい', 'あいみ', 'あいむ'] },
+    { kanji: '膨大', correctReading: 'ぼうだい', meaning: 'Enormous', wrongReadings: ['ぼだい', 'ふくだい', 'ほうだい'] },
+    { kanji: '甚大', correctReading: 'じんだい', meaning: 'Immense', wrongReadings: ['はなだい', 'しんだい', 'じだい'] },
+    { kanji: '慎重', correctReading: 'しんちょう', meaning: 'Cautious', wrongReadings: ['しんじゅう', 'ちんちょう', 'しんおも'] },
+    { kanji: '把握', correctReading: 'はあく', meaning: 'Grasp/Understand', wrongReadings: ['ばあく', 'はにぎ', 'はおく'] },
+    { kanji: '促進', correctReading: 'そくしん', meaning: 'Promotion', wrongReadings: ['しょくしん', 'そくすすむ', 'ぞくしん'] },
+    { kanji: '崩壊', correctReading: 'ほうかい', meaning: 'Collapse', wrongReadings: ['くずかい', 'ほかい', 'ぼうかい'] },
+    { kanji: '緊張', correctReading: 'きんちょう', meaning: 'Tension', wrongReadings: ['きんはり', 'ぎんちょう', 'きんちゅう'] },
+    { kanji: '拡大', correctReading: 'かくだい', meaning: 'Expansion', wrongReadings: ['ひろだい', 'こうだい', 'がくだい'] },
+    { kanji: '削減', correctReading: 'さくげん', meaning: 'Reduction', wrongReadings: ['けずげん', 'しゃくげん', 'さくかん'] },
+    { kanji: '妥協', correctReading: 'だきょう', meaning: 'Compromise', wrongReadings: ['たきょう', 'できょう', 'だぎょう'] },
+    { kanji: '範囲', correctReading: 'はんい', meaning: 'Scope/Range', wrongReadings: ['はんえ', 'ばんい', 'はんかこ'] },
+    { kanji: '傾向', correctReading: 'けいこう', meaning: 'Tendency', wrongReadings: ['かたむこう', 'けいほう', 'けいきょう'] },
+    { kanji: '圧倒', correctReading: 'あっとう', meaning: 'Overwhelming', wrongReadings: ['あつとう', 'あっだお', 'あっこう'] },
+  ],
+  N1: [
+    { kanji: '憂鬱', correctReading: 'ゆううつ', meaning: 'Depression/Gloom', wrongReadings: ['うれうつ', 'ゆうつ', 'ゆうう'] },
+    { kanji: '齟齬', correctReading: 'そご', meaning: 'Discrepancy', wrongReadings: ['しゃご', 'さご', 'そぐ'] },
+    { kanji: '顛末', correctReading: 'てんまつ', meaning: 'Whole story', wrongReadings: ['てんばつ', 'でんまつ', 'てんすえ'] },
+    { kanji: '怠惰', correctReading: 'たいだ', meaning: 'Laziness', wrongReadings: ['なまだ', 'たいな', 'おこたり'] },
+    { kanji: '忌避', correctReading: 'きひ', meaning: 'Avoidance', wrongReadings: ['いみひ', 'きさけ', 'きび'] },
+    { kanji: '恣意', correctReading: 'しい', meaning: 'Arbitrary', wrongReadings: ['じい', 'しぎ', 'しえ'] },
+    { kanji: '稀有', correctReading: 'けう', meaning: 'Rare/Unusual', wrongReadings: ['きゆう', 'きう', 'まれゆう'] },
+    { kanji: '瞬時', correctReading: 'しゅんじ', meaning: 'Instant', wrongReadings: ['またたきじ', 'しゅんし', 'じゅんじ'] },
+    { kanji: '怒濤', correctReading: 'どとう', meaning: 'Surging waves', wrongReadings: ['いかなみ', 'ぬとう', 'どなみ'] },
+    { kanji: '搾取', correctReading: 'さくしゅ', meaning: 'Exploitation', wrongReadings: ['しぼしゅ', 'さくとる', 'しゃくしゅ'] },
+    { kanji: '疎外', correctReading: 'そがい', meaning: 'Alienation', wrongReadings: ['うとがい', 'そはず', 'そげ'] },
+    { kanji: '逸脱', correctReading: 'いつだつ', meaning: 'Deviation', wrongReadings: ['いちだつ', 'いつぬけ', 'いだつ'] },
+    { kanji: '薫陶', correctReading: 'くんとう', meaning: 'Mentoring', wrongReadings: ['かおとう', 'くんすえ', 'くんどう'] },
+    { kanji: '凡庸', correctReading: 'ぼんよう', meaning: 'Mediocre', wrongReadings: ['はんよう', 'ぼんもち', 'ほんよう'] },
+    { kanji: '辛辣', correctReading: 'しんらつ', meaning: 'Harsh/Biting', wrongReadings: ['かららつ', 'しんかつ', 'しんれつ'] },
+    { kanji: '杞憂', correctReading: 'きゆう', meaning: 'Needless worry', wrongReadings: ['きうれ', 'きゆ', 'きいう'] },
+    { kanji: '躊躇', correctReading: 'ちゅうちょ', meaning: 'Hesitation', wrongReadings: ['しゅうしょ', 'ちゅうしょ', 'ちゅうちゃ'] },
+    { kanji: '傲慢', correctReading: 'ごうまん', meaning: 'Arrogance', wrongReadings: ['おごまん', 'こうまん', 'ごまん'] },
+    { kanji: '貪欲', correctReading: 'どんよく', meaning: 'Greed', wrongReadings: ['たんよく', 'むさよく', 'とんよく'] },
+    { kanji: '恩恵', correctReading: 'おんけい', meaning: 'Grace/Benefit', wrongReadings: ['おんえ', 'おんめぐ', 'いんけい'] },
+  ],
+}
+
+// Computed: get kanjiData based on selected level
+const kanjiData = computed(() => kanjiByLevel[selectedLevel.value] || kanjiByLevel.N3)
 
 function shuffle(array) {
   const a = [...array]
@@ -362,27 +762,28 @@ function shuffle(array) {
 }
 
 function generateQuestion() {
-  // Pick a random kanji not yet used
-  let availableIndices = kanjiData
+  // Pick a random kanji not yet used (from the selected level)
+  const data = kanjiData.value
+  let availableIndices = data
     .map((_, i) => i)
     .filter(i => !usedQuestionIndices.includes(i))
 
   if (availableIndices.length === 0) {
     // Reset if somehow exhausted
     usedQuestionIndices = []
-    availableIndices = kanjiData.map((_, i) => i)
+    availableIndices = data.map((_, i) => i)
   }
 
   const idx = availableIndices[Math.floor(Math.random() * availableIndices.length)]
   usedQuestionIndices.push(idx)
-  const data = kanjiData[idx]
+  const item = data[idx]
 
-  const options = shuffle([data.correctReading, ...data.wrongReadings])
+  const options = shuffle([item.correctReading, ...item.wrongReadings])
 
   return {
-    kanji: data.kanji,
-    correctReading: data.correctReading,
-    meaning: data.meaning,
+    kanji: item.kanji,
+    correctReading: item.correctReading,
+    meaning: item.meaning,
     options
   }
 }
@@ -393,6 +794,17 @@ function startGame() {
   score.value = 0
   wrongAnswers.value = []
   usedQuestionIndices = []
+  
+  // Reset session stats
+  sessionStats.value = {
+    questionsAnswered: 0,
+    correctAnswers: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    averageTime: 0
+  }
+  comboCount.value = 0
+  
   loadQuestion()
 }
 
@@ -420,7 +832,8 @@ function startTimer() {
         wrongAnswers.value.push({
           kanji: currentQuestion.value.kanji,
           correctReading: currentQuestion.value.correctReading,
-          meaning: currentQuestion.value.meaning
+          meaning: currentQuestion.value.meaning,
+          userAnswer: '⏰ Time up'
         })
         setTimeout(nextRound, 1500)
       }
@@ -435,14 +848,39 @@ function selectAnswer(option) {
   selectedAnswer.value = option
   isCorrect.value = option === currentQuestion.value.correctReading
 
+  // Update session stats
+  sessionStats.value.questionsAnswered++
+
   if (isCorrect.value) {
     score.value++
+    sessionStats.value.correctAnswers++
+    sessionStats.value.currentStreak++
+    comboCount.value++
+    
+    // Update best streak
+    if (sessionStats.value.currentStreak > sessionStats.value.bestStreak) {
+      sessionStats.value.bestStreak = sessionStats.value.currentStreak
+    }
+    
+    // Show combo animation for 3+ streak
+    if (comboCount.value >= 3) {
+      showComboAnimation.value = true
+      setTimeout(() => { showComboAnimation.value = false }, 1000)
+    }
+    
+    // Play success sound (structure for future)
+    playSound('correct')
   } else {
+    sessionStats.value.currentStreak = 0
+    comboCount.value = 0
     wrongAnswers.value.push({
       kanji: currentQuestion.value.kanji,
       correctReading: currentQuestion.value.correctReading,
-      meaning: currentQuestion.value.meaning
+      meaning: currentQuestion.value.meaning,
+      userAnswer: option
     })
+    // Play error sound (structure for future)
+    playSound('wrong')
   }
 
   setTimeout(nextRound, 1500)
@@ -463,7 +901,7 @@ async function finishGame() {
 
   // Submit score to backend
   try {
-    const res = await api.post('/quiz/scores', { score: score.value, total: 10, quiz_type: 'jlpt_n3_kanji_reading' })
+    const res = await api.post('/quiz/scores', { score: score.value, total: 10, quiz_type: `jlpt_${selectedLevel.value.toLowerCase()}_kanji_reading` })
     pointsEarned.value = res.data.pointsEarned || 0
     totalPoints.value = res.data.totalPoints || 0
     // Update user points in store
@@ -496,7 +934,7 @@ function getScoreMessage() {
 async function fetchLeaderboard() {
   leaderboardLoading.value = true
   try {
-    const res = await api.get('/quiz/leaderboard?quiz_type=jlpt_n3_kanji_reading')
+    const res = await api.get('/quiz/leaderboard')
     leaderboard.value = res.data.leaderboard || []
     personalBest.value = res.data.personalBest ?? null
   } catch (err) {
@@ -512,15 +950,392 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Sound effects (placeholder for future audio implementation)
+function playSound(type) {
+  // Future: Add actual sound effects
+  // const audio = new Audio(`/sounds/${type}.mp3`)
+  // audio.play()
+  console.log(`🔊 Sound: ${type}`)
+}
+
+// Keyboard shortcuts
+function handleKeyPress(event) {
+  if (gameState.value !== 'playing' || answered.value) return
+  
+  const key = event.key.toLowerCase()
+  const options = currentQuestion.value.options || []
+  
+  // Number keys 1-4 or letters A-D
+  if (['1', '2', '3', '4'].includes(key)) {
+    const index = parseInt(key) - 1
+    if (options[index]) {
+      selectAnswer(options[index])
+    }
+  } else if (['a', 'b', 'c', 'd'].includes(key)) {
+    const index = ['a', 'b', 'c', 'd'].indexOf(key)
+    if (options[index]) {
+      selectAnswer(options[index])
+    }
+  }
+}
+
+// Lifecycle hooks
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyPress)
+})
+
 onUnmounted(() => {
   clearInterval(timerInterval)
+  clearInterval(similarTimer)
+  clearInterval(grammarTimer)
+  window.removeEventListener('keydown', handleKeyPress)
 })
+
+// ==========================================
+// SIMILAR KANJI QUIZ
+// ==========================================
+const similarState = ref('idle')
+const similarRound = ref(1)
+const similarScore = ref(0)
+const similarQuestion = ref({})
+const similarSelected = ref(null)
+const similarAnswered = ref(false)
+const similarIsCorrect = ref(false)
+const similarWrong = ref([])
+const similarTimeLeft = ref(15)
+let similarTimer = null
+let usedSimilarIndices = []
+
+const similarKanjiData = [
+  { correct: '待', meaning: 'Wait', reading: 'まつ', similars: ['持', '特', '侍'] },
+  { correct: '持', meaning: 'Hold', reading: 'もつ', similars: ['待', '特', '侍'] },
+  { correct: '末', meaning: 'End', reading: 'すえ', similars: ['未', '本', '木'] },
+  { correct: '未', meaning: 'Not yet', reading: 'み', similars: ['末', '木', '本'] },
+  { correct: '土', meaning: 'Earth/Soil', reading: 'つち', similars: ['士', '工', '王'] },
+  { correct: '士', meaning: 'Samurai', reading: 'し', similars: ['土', '工', '王'] },
+  { correct: '大', meaning: 'Big', reading: 'おおきい', similars: ['太', '犬', '天'] },
+  { correct: '犬', meaning: 'Dog', reading: 'いぬ', similars: ['大', '太', '天'] },
+  { correct: '太', meaning: 'Thick/Fat', reading: 'ふとい', similars: ['大', '犬', '天'] },
+  { correct: '力', meaning: 'Power', reading: 'ちから', similars: ['刀', '刃', '万'] },
+  { correct: '刀', meaning: 'Sword', reading: 'かたな', similars: ['力', '刃', '万'] },
+  { correct: '千', meaning: 'Thousand', reading: 'せん', similars: ['干', '于', '午'] },
+  { correct: '干', meaning: 'Dry', reading: 'ほす', similars: ['千', '于', '午'] },
+  { correct: '午', meaning: 'Noon', reading: 'ご', similars: ['牛', '干', '千'] },
+  { correct: '牛', meaning: 'Cow', reading: 'うし', similars: ['午', '半', '年'] },
+  { correct: '右', meaning: 'Right', reading: 'みぎ', similars: ['左', '石', '台'] },
+  { correct: '左', meaning: 'Left', reading: 'ひだり', similars: ['右', '石', '在'] },
+  { correct: '方', meaning: 'Direction', reading: 'かた', similars: ['万', '刀', '力'] },
+  { correct: '万', meaning: 'Ten thousand', reading: 'まん', similars: ['方', '刀', '力'] },
+  { correct: '日', meaning: 'Day/Sun', reading: 'ひ', similars: ['目', '白', '田'] },
+  { correct: '目', meaning: 'Eye', reading: 'め', similars: ['日', '白', '田'] },
+  { correct: '田', meaning: 'Rice field', reading: 'た', similars: ['日', '目', '由'] },
+  { correct: '由', meaning: 'Reason', reading: 'よし', similars: ['田', '甲', '申'] },
+  { correct: '申', meaning: 'Say/Monkey', reading: 'もうす', similars: ['由', '甲', '田'] },
+  { correct: '入', meaning: 'Enter', reading: 'はいる', similars: ['人', '八', '込'] },
+  { correct: '人', meaning: 'Person', reading: 'ひと', similars: ['入', '八', '大'] },
+  { correct: '夕', meaning: 'Evening', reading: 'ゆう', similars: ['タ', '久', '多'] },
+  { correct: '鳥', meaning: 'Bird', reading: 'とり', similars: ['烏', '島', '鴨'] },
+  { correct: '島', meaning: 'Island', reading: 'しま', similars: ['鳥', '烏', '嶋'] },
+  { correct: '氷', meaning: 'Ice', reading: 'こおり', similars: ['水', '永', '泉'] },
+  { correct: '水', meaning: 'Water', reading: 'みず', similars: ['氷', '永', '泉'] },
+  { correct: '忙', meaning: 'Busy', reading: 'いそがしい', similars: ['忘', '忍', '忠'] },
+  { correct: '忘', meaning: 'Forget', reading: 'わすれる', similars: ['忙', '忍', '忠'] },
+  { correct: '暑', meaning: 'Hot (weather)', reading: 'あつい', similars: ['暮', '者', '署'] },
+  { correct: '署', meaning: 'Station/Office', reading: 'しょ', similars: ['暑', '暮', '者'] },
+]
+
+function generateSimilarQuestion() {
+  let available = similarKanjiData.map((_, i) => i).filter(i => !usedSimilarIndices.includes(i))
+  if (available.length === 0) { usedSimilarIndices = []; available = similarKanjiData.map((_, i) => i) }
+  const idx = available[Math.floor(Math.random() * available.length)]
+  usedSimilarIndices.push(idx)
+  const d = similarKanjiData[idx]
+  return { correct: d.correct, meaning: d.meaning, reading: d.reading, options: shuffle([d.correct, ...d.similars.slice(0, 3)]) }
+}
+
+function startSimilarGame() {
+  similarState.value = 'playing'
+  similarRound.value = 1
+  similarScore.value = 0
+  similarWrong.value = []
+  usedSimilarIndices = []
+  loadSimilarQuestion()
+}
+
+function loadSimilarQuestion() {
+  similarAnswered.value = false
+  similarSelected.value = null
+  similarIsCorrect.value = false
+  similarQuestion.value = generateSimilarQuestion()
+  startSimilarTimer()
+}
+
+function startSimilarTimer() {
+  clearInterval(similarTimer)
+  similarTimeLeft.value = 15
+  similarTimer = setInterval(() => {
+    similarTimeLeft.value--
+    if (similarTimeLeft.value <= 0) {
+      clearInterval(similarTimer)
+      if (!similarAnswered.value) {
+        similarAnswered.value = true
+        similarIsCorrect.value = false
+        similarWrong.value.push({ correct: similarQuestion.value.correct, meaning: similarQuestion.value.meaning, userAnswer: '⏰ Time up' })
+        setTimeout(nextSimilarRound, 1500)
+      }
+    }
+  }, 1000)
+}
+
+function selectSimilarAnswer(option) {
+  if (similarAnswered.value) return
+  clearInterval(similarTimer)
+  similarAnswered.value = true
+  similarSelected.value = option
+  similarIsCorrect.value = option === similarQuestion.value.correct
+  if (similarIsCorrect.value) {
+    similarScore.value++
+  } else {
+    similarWrong.value.push({ correct: similarQuestion.value.correct, meaning: similarQuestion.value.meaning, userAnswer: option })
+  }
+  setTimeout(nextSimilarRound, 1500)
+}
+
+function nextSimilarRound() {
+  if (similarRound.value >= 10) {
+    finishSimilarGame()
+  } else {
+    similarRound.value++
+    loadSimilarQuestion()
+  }
+}
+
+async function finishSimilarGame() {
+  similarState.value = 'finished'
+  clearInterval(similarTimer)
+  // Submit score to backend
+  try {
+    const res = await api.post('/quiz/scores', { score: similarScore.value, total: 10, quiz_type: `jlpt_${similarLevel.value.toLowerCase()}_similar_kanji` })
+    // Update user points in store
+    if (authStore.user && res.data.totalPoints) {
+      authStore.user.points = res.data.totalPoints
+      localStorage.setItem('user', JSON.stringify(authStore.user))
+    }
+  } catch (err) {
+    console.error('Failed to save similar kanji score:', err)
+  }
+}
+
+// ==========================================
+// SENTENCE GRAMMAR REARRANGEMENT QUIZ
+// ==========================================
+const grammarState = ref('idle')
+const grammarRound = ref(1)
+const grammarScore = ref(0)
+const grammarQuestion = ref({})
+const grammarSelected = ref([])
+const grammarPool = ref([])
+const grammarAnswered = ref(false)
+const grammarIsCorrect = ref(false)
+const grammarWrong = ref([])
+const grammarTimeLeft = ref(30)
+let grammarTimer = null
+let usedGrammarIndices = []
+const grammarUsedPool = ref([]) // track which pool indices are used
+
+const grammarData = [
+  { correct: ['私', 'は', '学生', 'です', '。'], english: 'I am a student.' },
+  { correct: ['毎日', '日本語', 'を', '勉強', 'して', 'います', '。'], english: 'I study Japanese every day.' },
+  { correct: ['東京', 'に', '行き', 'たい', 'です', '。'], english: 'I want to go to Tokyo.' },
+  { correct: ['この', '本', 'は', 'とても', '面白い', 'です', '。'], english: 'This book is very interesting.' },
+  { correct: ['昨日', '友達', 'と', '映画', 'を', '見ました', '。'], english: 'I watched a movie with a friend yesterday.' },
+  { correct: ['日本', 'の', '食べ物', 'が', '好き', 'です', '。'], english: 'I like Japanese food.' },
+  { correct: ['駅', 'まで', '歩いて', '10分', 'かかります', '。'], english: 'It takes 10 minutes to walk to the station.' },
+  { correct: ['明日', '天気', 'が', 'よければ', '公園', 'に', '行きます', '。'], english: 'If the weather is good tomorrow, I will go to the park.' },
+  { correct: ['先生', 'に', '質問', 'を', 'しました', '。'], english: 'I asked the teacher a question.' },
+  { correct: ['電車', 'の', '中', 'で', '本', 'を', '読みます', '。'], english: 'I read a book on the train.' },
+  { correct: ['母', 'が', '作った', '料理', 'は', 'おいしい', 'です', '。'], english: 'The food my mother made is delicious.' },
+  { correct: ['来週', 'の', '月曜日', 'に', '会議', 'が', 'あります', '。'], english: 'There is a meeting next Monday.' },
+  { correct: ['彼', 'は', '英語', 'が', '上手', 'です', '。'], english: 'He is good at English.' },
+  { correct: ['すみません', '、', 'トイレ', 'は', 'どこ', 'ですか', '？'], english: 'Excuse me, where is the toilet?' },
+  { correct: ['雨', 'が', '降って', 'いる', 'から', '傘', 'を', '持って', 'いきましょう', '。'], english: "It's raining, so let's take an umbrella." },
+  { correct: ['日本', 'に', '来て', 'から', '3年', 'に', 'なります', '。'], english: 'It has been 3 years since I came to Japan.' },
+  { correct: ['この', 'レストラン', 'は', '予約', 'が', '必要', 'です', '。'], english: 'This restaurant requires a reservation.' },
+  { correct: ['寝る', '前', 'に', '歯', 'を', '磨きます', '。'], english: 'I brush my teeth before going to bed.' },
+  { correct: ['彼女', 'は', 'ピアノ', 'を', '弾く', 'こと', 'が', 'できます', '。'], english: 'She can play the piano.' },
+  { correct: ['もし', '時間', 'が', 'あれば', '手伝って', 'ください', '。'], english: 'If you have time, please help.' },
+]
+
+function generateGrammarQuestion() {
+  let available = grammarData.map((_, i) => i).filter(i => !usedGrammarIndices.includes(i))
+  if (available.length === 0) { usedGrammarIndices = []; available = grammarData.map((_, i) => i) }
+  const idx = available[Math.floor(Math.random() * available.length)]
+  usedGrammarIndices.push(idx)
+  const d = grammarData[idx]
+  return { correct: d.correct, english: d.english }
+}
+
+function startGrammarGame() {
+  grammarState.value = 'playing'
+  grammarRound.value = 1
+  grammarScore.value = 0
+  grammarWrong.value = []
+  usedGrammarIndices = []
+  loadGrammarQuestion()
+}
+
+function loadGrammarQuestion() {
+  grammarAnswered.value = false
+  grammarIsCorrect.value = false
+  grammarSelected.value = []
+  grammarUsedPool.value = []
+  const q = generateGrammarQuestion()
+  grammarQuestion.value = q
+  grammarPool.value = shuffle([...q.correct])
+  startGrammarTimer()
+}
+
+function startGrammarTimer() {
+  clearInterval(grammarTimer)
+  grammarTimeLeft.value = 30
+  grammarTimer = setInterval(() => {
+    grammarTimeLeft.value--
+    if (grammarTimeLeft.value <= 0) {
+      clearInterval(grammarTimer)
+      if (!grammarAnswered.value) {
+        grammarAnswered.value = true
+        grammarIsCorrect.value = false
+        grammarWrong.value.push({
+          correct: grammarQuestion.value.correct.join(''),
+          english: grammarQuestion.value.english,
+          userAnswer: grammarSelected.value.join('') || '⏰ Time up'
+        })
+        setTimeout(nextGrammarRound, 2000)
+      }
+    }
+  }, 1000)
+}
+
+function addWord(word, idx) {
+  if (grammarUsedPool.value.includes(idx)) return
+  grammarSelected.value.push(word)
+  grammarUsedPool.value.push(idx)
+}
+
+function removeWord(selectedIdx) {
+  if (grammarAnswered.value) return
+  const word = grammarSelected.value[selectedIdx]
+  grammarSelected.value.splice(selectedIdx, 1)
+  // Find the pool index to unmark
+  const poolIdx = grammarUsedPool.value.find(pi => grammarPool.value[pi] === word)
+  if (poolIdx !== undefined) {
+    grammarUsedPool.value = grammarUsedPool.value.filter(pi => pi !== poolIdx)
+  }
+}
+
+function isWordUsed(word, idx) {
+  return grammarUsedPool.value.includes(idx)
+}
+
+function clearGrammarSelection() {
+  grammarSelected.value = []
+  grammarUsedPool.value = []
+}
+
+function checkGrammarAnswer() {
+  if (grammarAnswered.value) return
+  clearInterval(grammarTimer)
+  grammarAnswered.value = true
+  const userStr = grammarSelected.value.join('')
+  const correctStr = grammarQuestion.value.correct.join('')
+  grammarIsCorrect.value = userStr === correctStr
+  if (grammarIsCorrect.value) {
+    grammarScore.value++
+  } else {
+    grammarWrong.value.push({
+      correct: correctStr,
+      english: grammarQuestion.value.english,
+      userAnswer: userStr
+    })
+  }
+  setTimeout(nextGrammarRound, 2000)
+}
+
+function nextGrammarRound() {
+  if (grammarRound.value >= 10) {
+    finishGrammarGame()
+  } else {
+    grammarRound.value++
+    loadGrammarQuestion()
+  }
+}
+
+async function finishGrammarGame() {
+  grammarState.value = 'finished'
+  clearInterval(grammarTimer)
+  // Submit score to backend
+  try {
+    const res = await api.post('/quiz/scores', { score: grammarScore.value, total: 10, quiz_type: 'grammar_rearrangement' })
+    // Update user points in store
+    if (authStore.user && res.data.totalPoints) {
+      authStore.user.points = res.data.totalPoints
+      localStorage.setItem('user', JSON.stringify(authStore.user))
+    }
+  } catch (err) {
+    console.error('Failed to save grammar score:', err)
+  }
+}
 </script>
 
 <style scoped>
 .quiz-page {
   min-height: 100vh;
   background: var(--bg-primary);
+}
+
+/* ===== Level Selector ===== */
+.level-selector {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.level-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.level-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.level-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  border: 2px solid var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.level-btn:hover {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.level-btn.active {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border-color: #e74c3c;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
 /* ===== Premium Gate ===== */
@@ -639,23 +1454,27 @@ onUnmounted(() => {
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--border-light);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 1rem;
+  padding: 0.875rem 0.5rem;
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-tertiary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   transition: all 0.2s;
   border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .tab-btn.active {
@@ -697,6 +1516,38 @@ onUnmounted(() => {
   color: var(--text-secondary);
   margin-bottom: 1.5rem;
   line-height: 1.6;
+}
+
+/* NEW: Keyboard Hint */
+.keyboard-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.hint-icon {
+  font-size: 1.25rem;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: monospace;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .quiz-rules {
@@ -943,6 +1794,113 @@ onUnmounted(() => {
   flex: 1;
 }
 
+.answer-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* ===== NEW: Combo Badge ===== */
+.combo-badge {
+  position: absolute;
+  top: 8rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  border-radius: 2rem;
+  box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3);
+  color: white;
+  font-weight: 800;
+  font-size: 1.1rem;
+  animation: pulse-combo 0.6s ease-in-out infinite;
+  z-index: 10;
+}
+
+.combo-badge.mega-combo {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  transform: scale(1.1);
+  animation: pulse-mega 0.5s ease-in-out infinite;
+}
+
+.combo-icon {
+  font-size: 1.5rem;
+  animation: flame 0.3s ease-in-out infinite;
+}
+
+@keyframes pulse-combo {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes pulse-mega {
+  0%, 100% { transform: scale(1.1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes flame {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+.combo-enter-active,
+.combo-leave-active {
+  transition: all 0.3s ease;
+}
+
+.combo-enter-from {
+  opacity: 0;
+  transform: translateX(2rem) scale(0.8);
+}
+
+.combo-leave-to {
+  opacity: 0;
+  transform: translateY(-2rem) scale(0.8);
+}
+
+/* ===== NEW: Session Stats Widget ===== */
+.session-stats-widget {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 0.75rem;
+}
+
+.stat-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: 0.5rem;
+}
+
+.stat-icon {
+  font-size: 1rem;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 /* ===== Feedback ===== */
 .feedback {
   display: flex;
@@ -1144,9 +2102,18 @@ onUnmounted(() => {
   font-family: 'Noto Sans JP', sans-serif;
 }
 
-.review-answer {
-  font-size: 1rem;
+.review-wrong {
+  font-size: 0.9375rem;
   font-weight: 600;
+  color: #ef4444;
+  font-family: 'Noto Sans JP', sans-serif;
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.review-correct {
+  font-size: 1rem;
+  font-weight: 700;
   color: #16a34a;
   font-family: 'Noto Sans JP', sans-serif;
 }
@@ -1162,6 +2129,152 @@ onUnmounted(() => {
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* ===== Similar Kanji Quiz ===== */
+.kanji-meaning-prompt {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.kanji-reading-hint {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+.answer-btn-kanji .kanji-option {
+  font-size: 2rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 800;
+}
+
+/* ===== Sentence Grammar Quiz ===== */
+.grammar-english-hint {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.grammar-answer-area {
+  margin: 1.5rem 0 1rem;
+  min-height: 64px;
+  background: var(--bg-tertiary);
+  border: 2px dashed var(--border-light);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.answer-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+}
+
+.placeholder-text {
+  color: var(--text-tertiary);
+  font-size: 0.9375rem;
+  font-style: italic;
+}
+
+.grammar-word-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.word-chip {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.word-chip.available {
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+.word-chip.available:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+}
+
+.word-chip.available:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.word-chip.selected {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.08));
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.word-chip.selected:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.15));
+}
+
+.chip-remove {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.word-chip.selected:hover .chip-remove {
+  opacity: 1;
+}
+
+.grammar-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.grammar-feedback-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.correct-sentence {
+  font-size: 1rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* Grammar review items */
+.review-item-grammar {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 0.375rem !important;
+}
+
+.review-grammar-row {
+  width: 100%;
 }
 
 /* ===== Leaderboard ===== */
@@ -1384,6 +2497,30 @@ onUnmounted(() => {
 
   .final-score .score-number {
     font-size: 3rem;
+  }
+
+  .tab-btn {
+    padding: 0.625rem 0.375rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .tab-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .grammar-answer-area {
+    padding: 0.75rem;
+  }
+
+  .word-chip {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+
+  .answer-btn-kanji .kanji-option {
+    font-size: 1.5rem;
   }
 }
 

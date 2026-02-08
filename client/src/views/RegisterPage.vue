@@ -163,7 +163,6 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import { useAuthStore } from '../store/auth'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
@@ -209,18 +208,18 @@ const handleRegister = async () => {
   }
 
   try {
-    await axios.post('http://localhost:5000/api/auth/register', {
+    await authStore.register({
       name: form.value.name,
       email: form.value.email,
       birthdate: form.value.birthdate,
       password: form.value.password
     })
     
-    success.value = 'Account created successfully! Redirecting to login...'
+    success.value = 'Account created successfully! Redirecting to dashboard...'
     
     setTimeout(() => {
-      router.push('/login')
-    }, 2000)
+      router.push('/dashboard')
+    }, 1000)
   } catch (err) {
     error.value = err.response?.data?.message || 'Registration failed. Please try again.'
   } finally {

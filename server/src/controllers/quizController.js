@@ -37,69 +37,79 @@ exports.submitScore = async (req, res) => {
   }
 }
 
-// GET /api/quiz/leaderboard?quiz_type=jlpt_n3_kanji_reading
+// GET /api/quiz/leaderboard — total scores across ALL quiz types
 exports.getLeaderboard = async (req, res) => {
   try {
-    const quizType = req.query.quiz_type || 'jlpt_n3_kanji_reading'
-
-    // Top 20 scores (best score per user, most recent first for ties)
     const { sequelize } = require('../config/database')
-    const [leaderboard] = await sequelize.query(`
-      SELECT DISTINCT ON (user_id) 
-        id, user_id, user_name, score, total, quiz_type, created_at
-      FROM quiz_scores
-      WHERE quiz_type = :quizType
-      ORDER BY user_id, score DESC, created_at DESC
-    `, {
-      replacements: { quizType },
-      type: sequelize.QueryTypes.SELECT
-    }).then(rows => {
-      // Sort by score descending, then by date
-      return [rows.sort((a, b) => b.score - a.score || new Date(b.created_at) - new Date(a.created_at)).slice(0, 20)]
-    })
 
-    // Personal best (if authenticated)
-    let personalBest = null
+    // Total score leaderboard: sum of best scores per quiz_type per user
+    const [leaderboard] = await sequelize.query(`
+      SELECT 
+        sub.user_id,
+        sub.user_name,
+        SUM(sub.best_score) as total_score,
+        COUNT(DISTINCT sub.quiz_type) as quiz_types_played,
+        MAX(sub.latest_date) as last_played
+      FROM (
+        SELECT DISTINCT ON (user_id, quiz_type)
+          user_id, user_name, quiz_type, score as best_score, created_at as latest_date
+        FROM quiz_scores
+        ORDER BY user_id, quiz_type, score DESC, created_at DESC
+      ) sub
+      GROUP BY sub.user_id, sub.user_name
+      ORDER BY total_score DESC, quiz_types_played DESC
+      LIMIT 20
+    `, { type: sequelize.QueryTypes.SELECT }).then(rows => [rows])
+
+    // Personal total
+    let personalTotal = null
     if (req.user?.id) {
-      const best = await QuizScore.findOne({
-        where: { user_id: req.user.id, quiz_type: quizType },
-        order: [['score', 'DESC']],
-        attributes: ['score']
-      })
-      personalBest = best?.score ?? null
+      const [result] = await sequelize.query(`
+        SELECT SUM(best_score) as total_score FROM (
+          SELECT DISTINCT ON (quiz_type) score as best_score
+          FROM quiz_scores
+          WHERE user_id = :userId
+          ORDER BY quiz_type, score DESC
+        ) sub
+      `, {
+        replacements: { userId: req.user.id },
+        type: sequelize.QueryTypes.SELECT
+      }).then(rows => [rows])
+      personalTotal = result?.total_score ? parseInt(result.total_score) : null
     }
 
-    res.json({ leaderboard, personalBest })
+    res.json({ leaderboard, personalBest: personalTotal })
   } catch (error) {
     console.error('Leaderboard error:', error)
-    // Fallback: simple query without DISTINCT ON (for non-PostgreSQL)
+    // Fallback: simple query
     try {
-      const quizType = req.query.quiz_type || 'jlpt_n3_kanji_reading'
       const scores = await QuizScore.findAll({
-        where: { quiz_type: quizType },
         order: [['score', 'DESC'], ['created_at', 'ASC']],
-        limit: 50
+        limit: 200
       })
 
-      // Deduplicate by user (keep best)
-      const seen = new Set()
-      const leaderboard = []
+      // Build total scores per user
+      const userScores = {}
       for (const s of scores) {
-        if (!seen.has(s.user_id)) {
-          seen.add(s.user_id)
-          leaderboard.push(s)
-          if (leaderboard.length >= 20) break
+        if (!userScores[s.user_id]) {
+          userScores[s.user_id] = { user_id: s.user_id, user_name: s.user_name, total_score: 0, quiz_types_played: 0, last_played: s.created_at, bestPerType: {} }
+        }
+        const key = s.quiz_type
+        if (!userScores[s.user_id].bestPerType[key] || s.score > userScores[s.user_id].bestPerType[key]) {
+          userScores[s.user_id].bestPerType[key] = s.score
         }
       }
 
+      const leaderboard = Object.values(userScores).map(u => {
+        u.total_score = Object.values(u.bestPerType).reduce((a, b) => a + b, 0)
+        u.quiz_types_played = Object.keys(u.bestPerType).length
+        delete u.bestPerType
+        return u
+      }).sort((a, b) => b.total_score - a.total_score).slice(0, 20)
+
       let personalBest = null
-      if (req.user?.id) {
-        const best = await QuizScore.findOne({
-          where: { user_id: req.user.id, quiz_type: quizType },
-          order: [['score', 'DESC']],
-          attributes: ['score']
-        })
-        personalBest = best?.score ?? null
+      if (req.user?.id && userScores[req.user.id]) {
+        personalBest = leaderboard.find(l => l.user_id === req.user.id)?.total_score || null
       }
 
       res.json({ leaderboard, personalBest })
