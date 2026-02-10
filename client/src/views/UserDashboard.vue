@@ -126,14 +126,24 @@
 </template>
 
 <script setup>
+/**
+ * UserDashboard script
+ *
+ * Shows a personalised welcome banner with quick stats:
+ *   - user name (from localStorage)
+ *   - saved-businesses count (fetched from API)
+ *   - days active (placeholder)
+ */
 import { ref, onMounted } from 'vue'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { getSavedBusinesses } from '../services/favoriteService'
 
-const userName = ref('')
+/* ---------- State ---------- */
+const userName             = ref('')
 const savedBusinessesCount = ref(0)
-const daysActive = ref(1)
+const daysActive           = ref(1)
 
+/* ---------- Init ---------- */
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   userName.value = user.name || 'Guest'

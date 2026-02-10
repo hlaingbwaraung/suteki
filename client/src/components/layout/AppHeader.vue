@@ -1,4 +1,15 @@
-﻿<template>
+﻿<!--
+  AppHeader.vue
+
+  Global navigation bar shared by all pages.
+    - Logo + main nav links (Home, Explore, About, Learn Japanese, Points Shop)
+    - Language toggle (EN / MY)
+    - Dark / light theme toggle
+    - Auth area: login/register buttons or user dropdown menu
+    - Mobile hamburger menu with overlay
+-->
+
+<template>
   <header class="header">
     <div class="header-container">
       <router-link to="/" class="logo">
@@ -43,7 +54,6 @@
           </svg>
           <span class="lang-label">{{ currentLang === 'en' ? 'EN' : 'MY' }}</span>
         </button>
-
         <button @click="themeStore.toggleTheme" class="theme-toggle" :title="themeStore.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
           <svg v-if="themeStore.isDarkMode" class="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"/>
@@ -118,34 +128,41 @@
 </template>
 
 <script setup>
+/**
+ * AppHeader script
+ *
+ * Manages desktop user-dropdown, mobile hamburger menu,
+ * language toggle (EN ↔ MY), and theme toggle.
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 
 const { locale } = useI18n()
-const authStore = useAuthStore()
+const authStore  = useAuthStore()
 const themeStore = useThemeStore()
-const showUserMenu = ref(false)
-const userMenuRef = ref(null)
+
+/* ---------- State ---------- */
+const showUserMenu   = ref(false)
+const userMenuRef    = ref(null)    // template ref for click-outside detection
 const mobileMenuOpen = ref(false)
 
+/* ---------- Computed ---------- */
 const currentLang = computed(() => locale.value)
 
+/* ---------- Language ---------- */
 const toggleLanguage = () => {
   const newLang = locale.value === 'en' ? 'my' : 'en'
   locale.value = newLang
   localStorage.setItem('locale', newLang)
 }
 
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value
-}
+/* ---------- Desktop User Menu ---------- */
+const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value }
+const closeMenu      = () => { showUserMenu.value = false }
 
-const closeMenu = () => {
-  showUserMenu.value = false
-}
-
+/* ---------- Mobile Menu ---------- */
 const toggleMobile = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
   document.body.style.overflow = mobileMenuOpen.value ? 'hidden' : ''
@@ -156,12 +173,14 @@ const closeMobile = () => {
   document.body.style.overflow = ''
 }
 
+/* ---------- Auth ---------- */
 const handleLogout = () => {
   authStore.logout()
   showUserMenu.value = false
   closeMobile()
 }
 
+/* ---------- Click-outside (close dropdown) ---------- */
 const handleClickOutside = (event) => {
   if (userMenuRef.value && !userMenuRef.value.contains(event.target)) {
     showUserMenu.value = false

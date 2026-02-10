@@ -1,3 +1,9 @@
+/**
+ * Favorite controller  –  save / unsave / list / check favourites.
+ *
+ * All operations require an authenticated user (req.user).
+ * Exports: saveBusiness, unsaveBusiness, getSavedBusinesses, checkIfSaved
+ */
 const { SavedBusiness, Business, Category } = require('../models')
 
 // Save a business to favorites

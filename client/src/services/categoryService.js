@@ -1,9 +1,13 @@
+/**
+ * Category Service
+ *
+ * API calls for fetching business categories.
+ */
+
 import api from './api'
 
-export const getCategories = () => {
-  return api.get('/categories')
-}
+/** Fetch all categories */
+export const getCategories    = ()     => api.get('/categories')
 
-export const getCategoryBySlug = (slug) => {
-  return api.get(`/categories/${slug}`)
-}
+/** Fetch a single category by its URL slug */
+export const getCategoryBySlug = (slug) => api.get(`/categories/${slug}`)

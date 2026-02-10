@@ -1,3 +1,9 @@
+/**
+ * Quiz controller  –  submit scores and fetch leaderboard.
+ *
+ * Exports: submitScore, getLeaderboard
+ * Awards 1 point per correct answer on submission.
+ */
 const QuizScore = require('../models/QuizScore')
 const User = require('../models/User')
 

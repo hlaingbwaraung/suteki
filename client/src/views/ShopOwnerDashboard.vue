@@ -1,3 +1,13 @@
+<!--
+  ShopOwnerDashboard.vue
+
+  Dashboard for shop owners to:
+    - View aggregated stats (businesses, coupons, usage)
+    - Manage their businesses (edit details)
+    - Create / edit / delete coupons
+    - Back button at bottom of content
+-->
+
 <template>
   <div class="shop-owner-dashboard">
     <AppHeader />
@@ -292,33 +302,50 @@
             </form>
           </div>
         </div>
+
+        <button class="page-back-btn" @click="goBack" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5"/>
+          </svg>
+          Back
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+/**
+ * ShopOwnerDashboard script
+ *
+ * Loads the shop owner’s businesses, coupons, and stats.
+ * Provides CRUD modals for editing business details and managing coupons.
+ */
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { getOwnerStats, getMyBusinesses, updateMyBusiness } from '../services/shopOwnerService'
 import { getMyCoupons, createCoupon, updateCoupon, deleteCoupon as deleteCouponApi } from '../services/couponService'
 
-const activeTab = ref('businesses')
-const stats = ref(null)
+const router = useRouter()
+
+/* ---------- Tab & Stats ---------- */
+const activeTab  = ref('businesses')
+const stats      = ref(null)
 const businesses = ref([])
-const coupons = ref([])
+const coupons    = ref([])
 const loadingBusinesses = ref(true)
-const loadingCoupons = ref(true)
+const loadingCoupons    = ref(true)
 
-// Business editing
+/* ---------- Business editing ---------- */
 const showBusinessModal = ref(false)
-const savingBusiness = ref(false)
-const editingBusiness = ref({})
+const savingBusiness    = ref(false)
+const editingBusiness   = ref({})
 
-// Coupon editing
+/* ---------- Coupon editing ---------- */
 const showCouponModal = ref(false)
-const savingCoupon = ref(false)
-const editingCoupon = ref({
+const savingCoupon    = ref(false)
+const editingCoupon   = ref({
   business_id: '',
   code: '',
   title: '',
@@ -331,6 +358,17 @@ const editingCoupon = ref({
   end_date: '',
   is_active: true
 })
+
+/* ---------- Navigation ---------- */
+
+/** Navigate back or fall back to home */
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -488,6 +526,28 @@ async function deleteCoupon(coupon) {
 
 .dashboard-container {
   padding: 2rem 0 5rem;
+}
+
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.page-back-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(212, 175, 55, 0.08);
 }
 
 .page-header {

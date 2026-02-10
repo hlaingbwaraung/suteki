@@ -1,3 +1,10 @@
+/**
+ * Business controller  –  CRUD for businesses / shops.
+ *
+ * Public: getAllBusinesses (filter by category slug / search), getBusinessById
+ * Admin:  getBusinessStats, createBusiness, updateBusiness,
+ *         deleteBusiness, toggleBusinessActive
+ */
 const { Business, Category, Coupon } = require('../models')
 const { Op } = require('sequelize')
 

@@ -1,3 +1,11 @@
+/**
+ * Favorite routes  –  /api/favorites  (all routes require JWT)
+ *
+ *   POST /save                 – Save a business to favourites
+ *   DELETE /:businessId        – Remove from favourites
+ *   GET  /                     – List all saved businesses
+ *   GET  /check/:businessId    – Check if a business is saved
+ */
 const express = require('express')
 const router = express.Router()
 const favoriteController = require('../controllers/favoriteController')

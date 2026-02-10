@@ -1,3 +1,14 @@
+<!--
+  AboutJapan.vue
+
+  Blog / articles page about Japanese culture, travel tips, food, etc.
+    - Fetches published blog posts from the API
+    - Filter tabs by category (culture, travel, food …)
+    - Featured article hero + grid of cards
+    - Modal overlay for reading full articles
+    - Supports bilingual content (EN / MY)
+-->
+
 <template>
   <div class="about-japan">
     <AppHeader />
@@ -52,8 +63,8 @@
           </div>
           <div class="aj-featured-content">
             <span class="aj-category-tag">{{ featuredArticle.category }}</span>
-            <h2 class="aj-featured-title">{{ featuredArticle.title }}</h2>
-            <p class="aj-featured-excerpt">{{ featuredArticle.excerpt }}</p>
+            <h2 class="aj-featured-title">{{ currentLocale === 'my' ? (featuredArticle.title_my || featuredArticle.title) : featuredArticle.title }}</h2>
+            <p class="aj-featured-excerpt">{{ currentLocale === 'my' ? (featuredArticle.excerpt_my || featuredArticle.excerpt) : featuredArticle.excerpt }}</p>
             <div class="aj-meta">
               <span>📅 {{ featuredArticle.date }}</span>
               <span>⏱️ {{ featuredArticle.readTime }}</span>
@@ -74,8 +85,8 @@
                 <span class="aj-card-tag">{{ article.category }}</span>
               </div>
               <div class="aj-card-body">
-                <h3 class="aj-card-title">{{ article.title }}</h3>
-                <p class="aj-card-excerpt">{{ article.excerpt }}</p>
+                <h3 class="aj-card-title">{{ currentLocale === 'my' ? (article.title_my || article.title) : article.title }}</h3>
+                <p class="aj-card-excerpt">{{ currentLocale === 'my' ? (article.excerpt_my || article.excerpt) : article.excerpt }}</p>
                 <div class="aj-card-meta">
                   <span>{{ article.date }}</span>
                   <span>{{ article.readTime }}</span>
@@ -97,12 +108,12 @@
           </div>
           <div class="aj-modal-body">
             <span class="aj-category-tag">{{ selectedArticle.category }}</span>
-            <h1 class="aj-modal-title">{{ selectedArticle.title }}</h1>
+            <h1 class="aj-modal-title">{{ currentLocale === 'my' ? (selectedArticle.title_my || selectedArticle.title) : selectedArticle.title }}</h1>
             <div class="aj-meta" style="margin-bottom: 1.5rem;">
               <span>📅 {{ selectedArticle.date }}</span>
               <span>⏱️ {{ selectedArticle.readTime }}</span>
             </div>
-            <div class="aj-modal-content" v-html="selectedArticle.content"></div>
+            <div class="aj-modal-content" v-html="currentLocale === 'my' ? (selectedArticle.content_my || selectedArticle.content) : selectedArticle.content"></div>
           </div>
         </div>
       </div>
@@ -120,16 +131,26 @@
 </template>
 
 <script setup>
+/**
+ * AboutJapan script
+ *
+ * Loads published blog posts from /api/blogs and maps them
+ * into a local articles array. Supports bilingual (EN / MY)
+ * for title, excerpt, and content fields.
+ */
 import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import AppHeader from '../components/layout/AppHeader.vue'
 
-const { t } = useI18n()
-const activeTab = ref('all')
-const selectedArticle = ref(null)
-const articles = ref([])
-const loading = ref(true)
+const { t, locale } = useI18n()
+const currentLocale   = computed(() => locale.value)
+
+/* ---------- State ---------- */
+const activeTab       = ref('all')       // current category filter
+const selectedArticle = ref(null)        // article shown in the modal
+const articles        = ref([])          // fetched blog posts
+const loading         = ref(true)
 
 const tabs = computed(() => [
   { id: 'all', label: t('aboutJapan.all'), icon: '📰' },
@@ -168,13 +189,16 @@ const loadBlogs = async () => {
     articles.value = response.data.data.map(blog => ({
       id: blog.id,
       title: blog.title,
+      title_my: blog.title_my,
       emoji: blog.emoji,
       category: blog.category,
       tag: blog.tag,
       date: new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       readTime: blog.read_time,
       excerpt: blog.excerpt,
+      excerpt_my: blog.excerpt_my,
       content: blog.content,
+      content_my: blog.content_my,
       photo: blog.photo
     }))
   } catch (error) {

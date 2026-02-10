@@ -1,3 +1,9 @@
+/**
+ * UserCoupon model  –  Sequelize definition for the `user_coupons` table.
+ *
+ * Records when a user redeems a coupon with points.
+ * Tracks points_spent, redeemed_at, is_used, used_at.
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

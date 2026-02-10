@@ -56,29 +56,44 @@
 </template>
 
 <script setup>
+/**
+ * FavoritesPage script
+ *
+ * Lists the current user’s saved / bookmarked businesses.
+ * Allows inline removal with a confirm dialog.
+ */
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { getSavedBusinesses, unsaveBusiness } from '../services/favoriteService'
 import { useAuthStore } from '../store/auth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
-const favorites = ref([])
-const loading = ref(true)
-const error = ref('')
 
+/* ---------- State ---------- */
+const favorites = ref([])
+const loading   = ref(true)
+const error     = ref('')
+
+/* ---------- Helpers ---------- */
+
+/** Truncate text to `length` chars, appending ‘…’ if longer */
 const truncate = (text, length) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 
+/** Keep only the first two comma-separated parts of an address */
 const truncateAddress = (address) => {
   if (!address) return ''
   const parts = address.split(',')
   return parts.length > 2 ? parts.slice(0, 2).join(',') : address
 }
 
+/* ---------- Actions ---------- */
+
+/** Remove a business from favourites after user confirmation */
 const handleRemoveFavorite = async (businessId) => {
   if (!confirm('Remove this business from your favorites?')) {
     return

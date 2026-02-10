@@ -1,33 +1,22 @@
+/**
+ * Auth Service
+ *
+ * API calls related to authentication, profile management,
+ * and account operations.
+ */
+
 import api from './api'
 
-export const login = (credentials) => {
-  return api.post('/auth/login', credentials)
-}
+/* ---------- Authentication ---------- */
+export const login       = (credentials) => api.post('/auth/login', credentials)
+export const register    = (userData)    => api.post('/auth/register', userData)
+export const googleLogin = (credential)  => api.post('/auth/google', { credential })
 
-export const register = (userData) => {
-  return api.post('/auth/register', userData)
-}
+/* ---------- Email / Password Recovery ---------- */
+export const verifyEmail   = (token)              => api.post('/auth/verify-email', { token })
+export const forgotPassword = (email)             => api.post('/auth/forgot-password', { email })
+export const resetPassword  = (token, newPassword) => api.post('/auth/reset-password', { token, newPassword })
 
-export const googleLogin = (credential) => {
-  return api.post('/auth/google', { credential })
-}
-
-export const verifyEmail = (token) => {
-  return api.post('/auth/verify-email', { token })
-}
-
-export const forgotPassword = (email) => {
-  return api.post('/auth/forgot-password', { email })
-}
-
-export const resetPassword = (token, newPassword) => {
-  return api.post('/auth/reset-password', { token, newPassword })
-}
-
-export const getMe = () => {
-  return api.get('/auth/me')
-}
-
-export const updateProfile = (profileData) => {
-  return api.put('/auth/profile', profileData)
-}
+/* ---------- Current User ---------- */
+export const getMe         = ()            => api.get('/auth/me')
+export const updateProfile = (profileData) => api.put('/auth/profile', profileData)

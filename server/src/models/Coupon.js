@@ -1,3 +1,10 @@
+/**
+ * Coupon model  –  Sequelize definition for the `coupons` table.
+ *
+ * Coupons are tied to a business. Discount types: percentage | fixed | freebie.
+ * Optional fields: min_purchase, max_uses, start/end dates, points_cost
+ * (for the points shop).
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

@@ -1,3 +1,11 @@
+/**
+ * Points controller  –  points-shop logic.
+ *
+ * Exports: getMyPoints, getPointsShop, redeemCoupon,
+ *          getMyCoupons, useCoupon
+ *
+ * Users earn points from quizzes; spend them to redeem coupons.
+ */
 const { User, Coupon, UserCoupon, Business } = require('../models')
 const { Op } = require('sequelize')
 

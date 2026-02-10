@@ -1,3 +1,13 @@
+<!--
+  JLPTQuizPage.vue
+
+  Premium-only JLPT Kanji reading quiz:
+    - Gate non-premium users with an upgrade CTA
+    - Level selector (N5–N1) with timed kanji-reading rounds
+    - Tabs: Quiz / Similar Kanji / Dictionary Lookup / Leaderboard
+    - Session stats, streak combos, and point rewards
+-->
+
 <template>
   <div class="quiz-page">
     <AppHeader />
@@ -23,12 +33,16 @@
     <div v-else class="quiz-content">
       <!-- Header Section -->
       <section class="quiz-hero">
-        <div class="quiz-hero-content">
-          <span class="quiz-badge">🎌 {{ $t('jlpt.badge') }}</span>
-          <h1 class="quiz-title">
-            {{ $t('jlpt.title') }} <span class="text-gold">{{ $t('jlpt.titleHighlight') }}</span>
-          </h1>
-          <p class="quiz-subtitle">{{ $t('jlpt.subtitle') }}</p>
+        <div class="quiz-hero-inner">
+          <!-- JLPT Level Selector -->
+          <div class="level-selector">
+            <label class="level-label">Select Level:</label>
+            <div class="level-buttons">
+              <button v-for="lvl in ['N5','N4','N3','N2','N1']" :key="lvl" class="level-btn" :class="{ active: selectedLevel === lvl }" @click="selectedLevel = lvl">
+                {{ lvl }}
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -64,6 +78,53 @@
               </svg>
               {{ $t('jlpt.leaderboardTab') }}
             </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'dictionary' }" @click="activeTab = 'dictionary'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Dictionary
+            </button>
+          </div>
+
+          <!-- DICTIONARY TAB -->
+          <div v-if="activeTab === 'dictionary'" class="quiz-panel">
+          <div class="dictionary-card">
+            <div class="dictionary-header">
+              <div>
+                <h3>Quick Dictionary</h3>
+                <p class="dictionary-hint">Powered by Jisho — search words or kanji</p>
+              </div>
+              <div class="dictionary-actions">
+                <input
+                  v-model="dictionaryQuery"
+                  class="dict-input"
+                  type="text"
+                  placeholder="Enter Japanese or English"
+                  @keyup.enter="lookupWord"
+                />
+                <button class="btn-start" @click="lookupWord" :disabled="!dictionaryQuery.trim() || dictionaryLoading">
+                  {{ dictionaryLoading ? 'Searching...' : 'Search' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="dictionaryError" class="error">{{ dictionaryError }}</div>
+            <div v-else-if="dictionaryLoading" class="loading">Fetching dictionary results...</div>
+            <div v-else class="dictionary-results">
+              <div v-if="dictionaryResults.length === 0" class="dictionary-empty">Try searching for a word like "食べる" or "study".</div>
+              <div v-else class="dictionary-item" v-for="(item, idx) in dictionaryResults" :key="idx">
+                <div class="dict-word">
+                  <span class="dict-kanji">{{ item.japanese?.[0]?.word || item.japanese?.[0]?.reading || '—' }}</span>
+                  <span class="dict-reading">{{ item.japanese?.[0]?.reading || '' }}</span>
+                </div>
+                <div class="dict-meaning">{{ item.senses?.[0]?.english_definitions?.join(', ') || 'No definition' }}</div>
+                <div class="dict-tags">
+                  <span v-for="(tag, tIdx) in (item.tags || []).slice(0, 3)" :key="tIdx" class="dict-tag">{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
           </div>
 
           <!-- QUIZ TAB -->
@@ -75,22 +136,6 @@
                 <div class="start-icon">🎴</div>
                 <h2>{{ $t('jlpt.kanjiSoundQuiz') }}</h2>
                 <p>{{ $t('jlpt.quizDescription') }}</p>
-                
-                <!-- JLPT Level Selector -->
-                <div class="level-selector">
-                  <label class="level-label">Select Level:</label>
-                  <div class="level-buttons">
-                    <button v-for="lvl in ['N5','N4','N3','N2','N1']" :key="lvl" class="level-btn" :class="{ active: selectedLevel === lvl }" @click="selectedLevel = lvl">
-                      {{ lvl }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Keyboard Hint -->
-                <div class="keyboard-hint">
-                  <span class="hint-icon">⌨️</span>
-                  <span>Press <kbd>1</kbd>-<kbd>4</kbd> or <kbd>A</kbd>-<kbd>D</kbd> to answer</span>
-                </div>
                 
                 <div class="quiz-rules">
                   <div class="rule">
@@ -315,16 +360,6 @@
                 <div class="start-icon">👀</div>
                 <h2>Similar Kanji Quiz</h2>
                 <p>Can you tell apart kanji that look almost identical? Pick the correct one!</p>
-                
-                <!-- JLPT Level Selector -->
-                <div class="level-selector">
-                  <label class="level-label">Select Level:</label>
-                  <div class="level-buttons">
-                    <button v-for="lvl in ['N5','N4','N3','N2','N1']" :key="lvl" class="level-btn" :class="{ active: similarLevel === lvl }" @click="similarLevel = lvl">
-                      {{ lvl }}
-                    </button>
-                  </div>
-                </div>
 
                 <div class="quiz-rules">
                   <div class="rule"><span class="rule-num">10</span><span>Questions</span></div>
@@ -450,29 +485,42 @@
               </div>
 
               <!-- Selected words (answer area) -->
-              <div class="grammar-answer-area">
+              <div class="grammar-answer-area"
+                :class="{ 'drag-over': answerDragOver }"
+                @dragover.prevent
+                @dragenter="answerDragOver = true"
+                @dragleave="answerDragOver = false"
+                @drop="answerDragOver = false; onDropToAnswer($event)"
+              >
                 <div class="answer-slots">
                   <button
                     v-for="(word, idx) in grammarSelected"
                     :key="'sel-' + idx"
                     class="word-chip selected"
+                    draggable="true"
+                    @dragstart="onDragStartFromAnswer($event, idx)"
                     @click="removeWord(idx)"
                   >
                     {{ word }}
                     <span class="chip-remove">✕</span>
                   </button>
-                  <span v-if="grammarSelected.length === 0" class="placeholder-text">Tap words below to build the sentence...</span>
+                  <span v-if="grammarSelected.length === 0" class="placeholder-text">Drag or tap words to build the sentence...</span>
                 </div>
               </div>
 
               <!-- Available words -->
-              <div class="grammar-word-pool">
+              <div class="grammar-word-pool"
+                @dragover.prevent
+                @drop="onDropToPool($event)"
+              >
                 <button
                   v-for="(word, idx) in grammarPool"
                   :key="'pool-' + idx"
                   class="word-chip available"
                   :class="{ used: grammarSelected.includes(word) && grammarPool.filter(w => w === word).indexOf(word) === idx }"
                   :disabled="isWordUsed(word, idx)"
+                  draggable="true"
+                  @dragstart="onDragStartFromPool($event, word, idx)"
                   @click="addWord(word, idx)"
                 >
                   {{ word }}
@@ -550,63 +598,72 @@
 </template>
 
 <script setup>
+/**
+ * JLPTQuizPage script
+ *
+ * Timed kanji reading quiz with 5 JLPT levels (N5–N1).
+ * Uses a local kanji bank; answers are shuffled each round.
+ * Scores are submitted to the API for the leaderboard.
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../store/auth'
 import api from '../services/api'
+import { searchDictionary } from '../services/dictionaryService'
 import AppHeader from '../components/layout/AppHeader.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-// Premium check - only premium members and admins can access
+/* ---------- Access Control ---------- */
 const isPremiumUser = computed(() => authStore.user?.is_premium || authStore.user?.is_admin)
 
-// Tabs
-const activeTab = ref('quiz')
-
-// JLPT Level Selection
+/* ---------- Tab & Level ---------- */
+const activeTab     = ref('quiz')
 const selectedLevel = ref('N5')
-const similarLevel = ref('N5')
 
-// Game State
-const gameState = ref('idle') // idle | playing | finished
-const currentRound = ref(1)
-const score = ref(0)
+/* ---------- Dictionary Lookup ---------- */
+const dictionaryQuery   = ref('')
+const dictionaryResults = ref([])
+const dictionaryLoading = ref(false)
+const dictionaryError   = ref('')
+
+/* ---------- Game State ---------- */
+const gameState       = ref('idle')   // idle | playing | finished
+const currentRound    = ref(1)
+const score           = ref(0)
 const currentQuestion = ref({})
-const selectedAnswer = ref(null)
-const answered = ref(false)
-const isCorrect = ref(false)
-const isFlipping = ref(false)
-const wrongAnswers = ref([])
-const timeLeft = ref(15)
-let timerInterval = null
+const selectedAnswer  = ref(null)
+const answered        = ref(false)
+const isCorrect       = ref(false)
+const isFlipping      = ref(false)
+const wrongAnswers    = ref([])
+const timeLeft        = ref(15)       // seconds per question
+let timerInterval     = null
 let usedQuestionIndices = []
 
-// NEW: Session Statistics
+/* ---------- Session Statistics ---------- */
 const sessionStats = ref({
   questionsAnswered: 0,
-  correctAnswers: 0,
-  currentStreak: 0,
-  bestStreak: 0,
-  averageTime: 0
+  correctAnswers:    0,
+  currentStreak:     0,
+  bestStreak:        0,
+  averageTime:       0
 })
-const comboCount = ref(0)
+const comboCount         = ref(0)
 const showComboAnimation = ref(false)
 
-// Leaderboard
-const leaderboard = ref([])
+/* ---------- Leaderboard ---------- */
+const leaderboard        = ref([])
 const leaderboardLoading = ref(false)
-const personalBest = ref(null)
-const pointsEarned = ref(0)
-const totalPoints = ref(0)
+const personalBest       = ref(null)
+const pointsEarned       = ref(0)
+const totalPoints        = ref(0)
 
-// ==========================================
-// JLPT Kanji Data — Sound/Reading Quiz (N5-N1)
-// ==========================================
-// ==========================================
-// KANJI DATA BY JLPT LEVEL
-// ==========================================
+/* ==========================================================
+ *  KANJI DATA BY JLPT LEVEL
+ *  Each entry: { kanji, correctReading, meaning, wrongReadings[] }
+ * ========================================================== */
 const kanjiByLevel = {
   N5: [
     { kanji: '食べる', correctReading: 'たべる', meaning: 'To eat', wrongReadings: ['しょくべる', 'くべる', 'たぶる'] },
@@ -1006,50 +1063,128 @@ const similarTimeLeft = ref(15)
 let similarTimer = null
 let usedSimilarIndices = []
 
-const similarKanjiData = [
-  { correct: '待', meaning: 'Wait', reading: 'まつ', similars: ['持', '特', '侍'] },
-  { correct: '持', meaning: 'Hold', reading: 'もつ', similars: ['待', '特', '侍'] },
-  { correct: '末', meaning: 'End', reading: 'すえ', similars: ['未', '本', '木'] },
-  { correct: '未', meaning: 'Not yet', reading: 'み', similars: ['末', '木', '本'] },
-  { correct: '土', meaning: 'Earth/Soil', reading: 'つち', similars: ['士', '工', '王'] },
-  { correct: '士', meaning: 'Samurai', reading: 'し', similars: ['土', '工', '王'] },
-  { correct: '大', meaning: 'Big', reading: 'おおきい', similars: ['太', '犬', '天'] },
-  { correct: '犬', meaning: 'Dog', reading: 'いぬ', similars: ['大', '太', '天'] },
-  { correct: '太', meaning: 'Thick/Fat', reading: 'ふとい', similars: ['大', '犬', '天'] },
-  { correct: '力', meaning: 'Power', reading: 'ちから', similars: ['刀', '刃', '万'] },
-  { correct: '刀', meaning: 'Sword', reading: 'かたな', similars: ['力', '刃', '万'] },
-  { correct: '千', meaning: 'Thousand', reading: 'せん', similars: ['干', '于', '午'] },
-  { correct: '干', meaning: 'Dry', reading: 'ほす', similars: ['千', '于', '午'] },
-  { correct: '午', meaning: 'Noon', reading: 'ご', similars: ['牛', '干', '千'] },
-  { correct: '牛', meaning: 'Cow', reading: 'うし', similars: ['午', '半', '年'] },
-  { correct: '右', meaning: 'Right', reading: 'みぎ', similars: ['左', '石', '台'] },
-  { correct: '左', meaning: 'Left', reading: 'ひだり', similars: ['右', '石', '在'] },
-  { correct: '方', meaning: 'Direction', reading: 'かた', similars: ['万', '刀', '力'] },
-  { correct: '万', meaning: 'Ten thousand', reading: 'まん', similars: ['方', '刀', '力'] },
-  { correct: '日', meaning: 'Day/Sun', reading: 'ひ', similars: ['目', '白', '田'] },
-  { correct: '目', meaning: 'Eye', reading: 'め', similars: ['日', '白', '田'] },
-  { correct: '田', meaning: 'Rice field', reading: 'た', similars: ['日', '目', '由'] },
-  { correct: '由', meaning: 'Reason', reading: 'よし', similars: ['田', '甲', '申'] },
-  { correct: '申', meaning: 'Say/Monkey', reading: 'もうす', similars: ['由', '甲', '田'] },
-  { correct: '入', meaning: 'Enter', reading: 'はいる', similars: ['人', '八', '込'] },
-  { correct: '人', meaning: 'Person', reading: 'ひと', similars: ['入', '八', '大'] },
-  { correct: '夕', meaning: 'Evening', reading: 'ゆう', similars: ['タ', '久', '多'] },
-  { correct: '鳥', meaning: 'Bird', reading: 'とり', similars: ['烏', '島', '鴨'] },
-  { correct: '島', meaning: 'Island', reading: 'しま', similars: ['鳥', '烏', '嶋'] },
-  { correct: '氷', meaning: 'Ice', reading: 'こおり', similars: ['水', '永', '泉'] },
-  { correct: '水', meaning: 'Water', reading: 'みず', similars: ['氷', '永', '泉'] },
-  { correct: '忙', meaning: 'Busy', reading: 'いそがしい', similars: ['忘', '忍', '忠'] },
-  { correct: '忘', meaning: 'Forget', reading: 'わすれる', similars: ['忙', '忍', '忠'] },
-  { correct: '暑', meaning: 'Hot (weather)', reading: 'あつい', similars: ['暮', '者', '署'] },
-  { correct: '署', meaning: 'Station/Office', reading: 'しょ', similars: ['暑', '暮', '者'] },
-]
+const similarKanjiByLevel = {
+  N5: [
+    { correct: '大', meaning: 'Big', reading: 'おおきい', similars: ['太', '犬', '天'] },
+    { correct: '犬', meaning: 'Dog', reading: 'いぬ', similars: ['大', '太', '天'] },
+    { correct: '太', meaning: 'Thick/Fat', reading: 'ふとい', similars: ['大', '犬', '天'] },
+    { correct: '力', meaning: 'Power', reading: 'ちから', similars: ['刀', '刃', '万'] },
+    { correct: '刀', meaning: 'Sword', reading: 'かたな', similars: ['力', '刃', '万'] },
+    { correct: '千', meaning: 'Thousand', reading: 'せん', similars: ['干', '于', '午'] },
+    { correct: '干', meaning: 'Dry', reading: 'ほす', similars: ['千', '于', '午'] },
+    { correct: '午', meaning: 'Noon', reading: 'ご', similars: ['牛', '干', '千'] },
+    { correct: '牛', meaning: 'Cow', reading: 'うし', similars: ['午', '半', '年'] },
+    { correct: '右', meaning: 'Right', reading: 'みぎ', similars: ['左', '石', '台'] },
+    { correct: '左', meaning: 'Left', reading: 'ひだり', similars: ['右', '石', '在'] },
+    { correct: '日', meaning: 'Day/Sun', reading: 'ひ', similars: ['目', '白', '田'] },
+    { correct: '目', meaning: 'Eye', reading: 'め', similars: ['日', '白', '田'] },
+    { correct: '田', meaning: 'Rice field', reading: 'た', similars: ['日', '目', '由'] },
+    { correct: '入', meaning: 'Enter', reading: 'はいる', similars: ['人', '八', '込'] },
+    { correct: '人', meaning: 'Person', reading: 'ひと', similars: ['入', '八', '大'] },
+    { correct: '土', meaning: 'Earth/Soil', reading: 'つち', similars: ['士', '工', '王'] },
+    { correct: '士', meaning: 'Samurai', reading: 'し', similars: ['土', '工', '王'] },
+    { correct: '水', meaning: 'Water', reading: 'みず', similars: ['氷', '永', '泉'] },
+    { correct: '夕', meaning: 'Evening', reading: 'ゆう', similars: ['タ', '久', '多'] },
+  ],
+  N4: [
+    { correct: '待', meaning: 'Wait', reading: 'まつ', similars: ['持', '特', '侍'] },
+    { correct: '持', meaning: 'Hold', reading: 'もつ', similars: ['待', '特', '侍'] },
+    { correct: '末', meaning: 'End', reading: 'すえ', similars: ['未', '本', '木'] },
+    { correct: '未', meaning: 'Not yet', reading: 'み', similars: ['末', '木', '本'] },
+    { correct: '方', meaning: 'Direction', reading: 'かた', similars: ['万', '刀', '力'] },
+    { correct: '万', meaning: 'Ten thousand', reading: 'まん', similars: ['方', '刀', '力'] },
+    { correct: '由', meaning: 'Reason', reading: 'よし', similars: ['田', '甲', '申'] },
+    { correct: '申', meaning: 'Say/Monkey', reading: 'もうす', similars: ['由', '甲', '田'] },
+    { correct: '氷', meaning: 'Ice', reading: 'こおり', similars: ['水', '永', '泉'] },
+    { correct: '忙', meaning: 'Busy', reading: 'いそがしい', similars: ['忘', '忍', '忠'] },
+    { correct: '忘', meaning: 'Forget', reading: 'わすれる', similars: ['忙', '忍', '忠'] },
+    { correct: '暑', meaning: 'Hot (weather)', reading: 'あつい', similars: ['暮', '者', '署'] },
+    { correct: '鳥', meaning: 'Bird', reading: 'とり', similars: ['烏', '島', '鴨'] },
+    { correct: '島', meaning: 'Island', reading: 'しま', similars: ['鳥', '烏', '嶋'] },
+    { correct: '署', meaning: 'Station/Office', reading: 'しょ', similars: ['暑', '暮', '者'] },
+    { correct: '活', meaning: 'Life/Active', reading: 'かつ', similars: ['括', '話', '舌'] },
+    { correct: '話', meaning: 'Talk', reading: 'はなし', similars: ['活', '括', '舌'] },
+    { correct: '広', meaning: 'Wide', reading: 'ひろい', similars: ['拡', '鉱', '曠'] },
+    { correct: '近', meaning: 'Near', reading: 'ちかい', similars: ['斤', '折', '所'] },
+    { correct: '週', meaning: 'Week', reading: 'しゅう', similars: ['週', '遇', '道'] },
+  ],
+  N3: [
+    { correct: '減', meaning: 'Decrease', reading: 'へる', similars: ['感', '威', '滅'] },
+    { correct: '感', meaning: 'Feel', reading: 'かん', similars: ['減', '威', '滅'] },
+    { correct: '議', meaning: 'Discuss', reading: 'ぎ', similars: ['義', '犠', '儀'] },
+    { correct: '義', meaning: 'Righteousness', reading: 'ぎ', similars: ['議', '犠', '儀'] },
+    { correct: '構', meaning: 'Structure', reading: 'こう', similars: ['講', '溝', '購'] },
+    { correct: '講', meaning: 'Lecture', reading: 'こう', similars: ['構', '溝', '購'] },
+    { correct: '防', meaning: 'Defend', reading: 'ぼう', similars: ['妨', '坊', '房'] },
+    { correct: '妨', meaning: 'Obstruct', reading: 'ぼう', similars: ['防', '坊', '房'] },
+    { correct: '複', meaning: 'Duplicate', reading: 'ふく', similars: ['復', '腹', '覆'] },
+    { correct: '復', meaning: 'Restore', reading: 'ふく', similars: ['複', '腹', '覆'] },
+    { correct: '精', meaning: 'Refined', reading: 'せい', similars: ['清', '晴', '情'] },
+    { correct: '清', meaning: 'Clean', reading: 'せい', similars: ['精', '晴', '情'] },
+    { correct: '絶', meaning: 'Sever', reading: 'ぜつ', similars: ['説', '脱', '税'] },
+    { correct: '説', meaning: 'Theory', reading: 'せつ', similars: ['絶', '脱', '税'] },
+    { correct: '状', meaning: 'Condition', reading: 'じょう', similars: ['況', '常', '情'] },
+    { correct: '況', meaning: 'Situation', reading: 'きょう', similars: ['状', '常', '情'] },
+    { correct: '退', meaning: 'Retreat', reading: 'たい', similars: ['褪', '腿', '追'] },
+    { correct: '追', meaning: 'Chase', reading: 'つい', similars: ['退', '褪', '腿'] },
+    { correct: '規', meaning: 'Standard', reading: 'き', similars: ['親', '観', '覚'] },
+    { correct: '観', meaning: 'Observe', reading: 'かん', similars: ['親', '規', '覚'] },
+  ],
+  N2: [
+    { correct: '壊', meaning: 'Destroy', reading: 'こわす', similars: ['懐', '壌', '塊'] },
+    { correct: '懐', meaning: 'Nostalgia', reading: 'なつかしい', similars: ['壊', '壌', '塊'] },
+    { correct: '繊', meaning: 'Slender', reading: 'せん', similars: ['織', '纏', '線'] },
+    { correct: '織', meaning: 'Weave', reading: 'おる', similars: ['繊', '纏', '線'] },
+    { correct: '微', meaning: 'Delicate', reading: 'び', similars: ['徴', '徹', '徳'] },
+    { correct: '徴', meaning: 'Symptom/Sign', reading: 'ちょう', similars: ['微', '徹', '徳'] },
+    { correct: '衝', meaning: 'Collision', reading: 'しょう', similars: ['衡', '街', '術'] },
+    { correct: '衡', meaning: 'Balance', reading: 'こう', similars: ['衝', '街', '術'] },
+    { correct: '漠', meaning: 'Vague', reading: 'ばく', similars: ['模', '膜', '幕'] },
+    { correct: '模', meaning: 'Model', reading: 'も', similars: ['漠', '膜', '幕'] },
+    { correct: '膜', meaning: 'Membrane', reading: 'まく', similars: ['漠', '模', '幕'] },
+    { correct: '慌', meaning: 'Flustered', reading: 'あわてる', similars: ['荒', '慣', '惰'] },
+    { correct: '荒', meaning: 'Rough/Wild', reading: 'あらい', similars: ['慌', '慣', '惰'] },
+    { correct: '陰', meaning: 'Shadow', reading: 'かげ', similars: ['隠', '隣', '険'] },
+    { correct: '隠', meaning: 'Hide', reading: 'かくす', similars: ['陰', '隣', '険'] },
+    { correct: '賠', meaning: 'Compensate', reading: 'ばい', similars: ['培', '倍', '陪'] },
+    { correct: '培', meaning: 'Cultivate', reading: 'ばい', similars: ['賠', '倍', '陪'] },
+    { correct: '抑', meaning: 'Suppress', reading: 'おさえる', similars: ['仰', '迎', '柳'] },
+    { correct: '仰', meaning: 'Look up', reading: 'あおぐ', similars: ['抑', '迎', '柳'] },
+    { correct: '摘', meaning: 'Pick/Point out', reading: 'つむ', similars: ['適', '滴', '敵'] },
+  ],
+  N1: [
+    { correct: '鬱', meaning: 'Depression', reading: 'うつ', similars: ['欝', '蔚', '鑿'] },
+    { correct: '朦', meaning: 'Hazy', reading: 'もう', similars: ['朧', '矇', '蒙'] },
+    { correct: '朧', meaning: 'Dim/Hazy', reading: 'おぼろ', similars: ['朦', '矇', '蒙'] },
+    { correct: '鑑', meaning: 'Appraise', reading: 'かん', similars: ['鑒', '監', '艦'] },
+    { correct: '監', meaning: 'Oversee', reading: 'かん', similars: ['鑑', '濫', '艦'] },
+    { correct: '繕', meaning: 'Mend', reading: 'つくろう', similars: ['膳', '禅', '善'] },
+    { correct: '膳', meaning: 'Meal tray', reading: 'ぜん', similars: ['繕', '禅', '善'] },
+    { correct: '諮', meaning: 'Consult', reading: 'し', similars: ['諸', '誌', '諦'] },
+    { correct: '諸', meaning: 'Various', reading: 'しょ', similars: ['諮', '誌', '諦'] },
+    { correct: '遮', meaning: 'Intercept', reading: 'しゃ', similars: ['遭', '遡', '遜'] },
+    { correct: '遭', meaning: 'Encounter', reading: 'そう', similars: ['遮', '遡', '遜'] },
+    { correct: '嘱', meaning: 'Entrust', reading: 'しょく', similars: ['囑', '属', '燭'] },
+    { correct: '属', meaning: 'Belong', reading: 'ぞく', similars: ['嘱', '囑', '燭'] },
+    { correct: '戴', meaning: 'Receive humbly', reading: 'いただく', similars: ['載', '裁', '栽'] },
+    { correct: '載', meaning: 'Load/Publish', reading: 'のせる', similars: ['戴', '裁', '栽'] },
+    { correct: '裁', meaning: 'Judge/Cut', reading: 'さい', similars: ['戴', '載', '栽'] },
+    { correct: '隷', meaning: 'Slave', reading: 'れい', similars: ['隸', '棣', '隶'] },
+    { correct: '塡', meaning: 'Fill in', reading: 'てん', similars: ['填', '鎮', '慎'] },
+    { correct: '彙', meaning: 'Collect/Category', reading: 'い', similars: ['彗', '彝', '彜'] },
+    { correct: '頻', meaning: 'Frequent', reading: 'ひん', similars: ['瀕', '顰', '頒'] },
+  ],
+}
+
+const similarKanjiData = computed(() => similarKanjiByLevel[selectedLevel.value] || similarKanjiByLevel.N5)
 
 function generateSimilarQuestion() {
-  let available = similarKanjiData.map((_, i) => i).filter(i => !usedSimilarIndices.includes(i))
-  if (available.length === 0) { usedSimilarIndices = []; available = similarKanjiData.map((_, i) => i) }
+  const data = similarKanjiData.value
+  let available = data.map((_, i) => i).filter(i => !usedSimilarIndices.includes(i))
+  if (available.length === 0) { usedSimilarIndices = []; available = data.map((_, i) => i) }
   const idx = available[Math.floor(Math.random() * available.length)]
   usedSimilarIndices.push(idx)
-  const d = similarKanjiData[idx]
+  const d = data[idx]
   return { correct: d.correct, meaning: d.meaning, reading: d.reading, options: shuffle([d.correct, ...d.similars.slice(0, 3)]) }
 }
 
@@ -1115,7 +1250,7 @@ async function finishSimilarGame() {
   clearInterval(similarTimer)
   // Submit score to backend
   try {
-    const res = await api.post('/quiz/scores', { score: similarScore.value, total: 10, quiz_type: `jlpt_${similarLevel.value.toLowerCase()}_similar_kanji` })
+    const res = await api.post('/quiz/scores', { score: similarScore.value, total: 10, quiz_type: `jlpt_${selectedLevel.value.toLowerCase()}_similar_kanji` })
     // Update user points in store
     if (authStore.user && res.data.totalPoints) {
       authStore.user.points = res.data.totalPoints
@@ -1142,36 +1277,105 @@ const grammarTimeLeft = ref(30)
 let grammarTimer = null
 let usedGrammarIndices = []
 const grammarUsedPool = ref([]) // track which pool indices are used
+const answerDragOver = ref(false)
 
-const grammarData = [
-  { correct: ['私', 'は', '学生', 'です', '。'], english: 'I am a student.' },
-  { correct: ['毎日', '日本語', 'を', '勉強', 'して', 'います', '。'], english: 'I study Japanese every day.' },
-  { correct: ['東京', 'に', '行き', 'たい', 'です', '。'], english: 'I want to go to Tokyo.' },
-  { correct: ['この', '本', 'は', 'とても', '面白い', 'です', '。'], english: 'This book is very interesting.' },
-  { correct: ['昨日', '友達', 'と', '映画', 'を', '見ました', '。'], english: 'I watched a movie with a friend yesterday.' },
-  { correct: ['日本', 'の', '食べ物', 'が', '好き', 'です', '。'], english: 'I like Japanese food.' },
-  { correct: ['駅', 'まで', '歩いて', '10分', 'かかります', '。'], english: 'It takes 10 minutes to walk to the station.' },
-  { correct: ['明日', '天気', 'が', 'よければ', '公園', 'に', '行きます', '。'], english: 'If the weather is good tomorrow, I will go to the park.' },
-  { correct: ['先生', 'に', '質問', 'を', 'しました', '。'], english: 'I asked the teacher a question.' },
-  { correct: ['電車', 'の', '中', 'で', '本', 'を', '読みます', '。'], english: 'I read a book on the train.' },
-  { correct: ['母', 'が', '作った', '料理', 'は', 'おいしい', 'です', '。'], english: 'The food my mother made is delicious.' },
-  { correct: ['来週', 'の', '月曜日', 'に', '会議', 'が', 'あります', '。'], english: 'There is a meeting next Monday.' },
-  { correct: ['彼', 'は', '英語', 'が', '上手', 'です', '。'], english: 'He is good at English.' },
-  { correct: ['すみません', '、', 'トイレ', 'は', 'どこ', 'ですか', '？'], english: 'Excuse me, where is the toilet?' },
-  { correct: ['雨', 'が', '降って', 'いる', 'から', '傘', 'を', '持って', 'いきましょう', '。'], english: "It's raining, so let's take an umbrella." },
-  { correct: ['日本', 'に', '来て', 'から', '3年', 'に', 'なります', '。'], english: 'It has been 3 years since I came to Japan.' },
-  { correct: ['この', 'レストラン', 'は', '予約', 'が', '必要', 'です', '。'], english: 'This restaurant requires a reservation.' },
-  { correct: ['寝る', '前', 'に', '歯', 'を', '磨きます', '。'], english: 'I brush my teeth before going to bed.' },
-  { correct: ['彼女', 'は', 'ピアノ', 'を', '弾く', 'こと', 'が', 'できます', '。'], english: 'She can play the piano.' },
-  { correct: ['もし', '時間', 'が', 'あれば', '手伝って', 'ください', '。'], english: 'If you have time, please help.' },
-]
+const grammarByLevel = {
+  N5: [
+    { correct: ['私', 'は', '学生', 'です', '。'], english: 'I am a student.' },
+    { correct: ['これ', 'は', '本', 'です', '。'], english: 'This is a book.' },
+    { correct: ['毎日', '学校', 'に', '行きます', '。'], english: 'I go to school every day.' },
+    { correct: ['水', 'を', '飲みます', '。'], english: 'I drink water.' },
+    { correct: ['日本語', 'を', '勉強', 'します', '。'], english: 'I study Japanese.' },
+    { correct: ['友達', 'と', '遊びます', '。'], english: 'I play with my friend.' },
+    { correct: ['今日', 'は', '暑い', 'です', '。'], english: 'Today is hot.' },
+    { correct: ['猫', 'が', '好き', 'です', '。'], english: 'I like cats.' },
+    { correct: ['朝', 'ご飯', 'を', '食べます', '。'], english: 'I eat breakfast.' },
+    { correct: ['あの', '人', 'は', '先生', 'です', '。'], english: 'That person is a teacher.' },
+    { correct: ['駅', 'は', 'どこ', 'ですか', '？'], english: 'Where is the station?' },
+    { correct: ['テレビ', 'を', '見ます', '。'], english: 'I watch television.' },
+    { correct: ['明日', '来ます', '。'], english: 'I will come tomorrow.' },
+    { correct: ['この', 'りんご', 'は', '赤い', 'です', '。'], english: 'This apple is red.' },
+    { correct: ['部屋', 'に', '入ります', '。'], english: 'I enter the room.' },
+  ],
+  N4: [
+    { correct: ['毎日', '日本語', 'を', '勉強', 'して', 'います', '。'], english: 'I study Japanese every day.' },
+    { correct: ['東京', 'に', '行き', 'たい', 'です', '。'], english: 'I want to go to Tokyo.' },
+    { correct: ['この', '本', 'は', 'とても', '面白い', 'です', '。'], english: 'This book is very interesting.' },
+    { correct: ['昨日', '友達', 'と', '映画', 'を', '見ました', '。'], english: 'I watched a movie with a friend yesterday.' },
+    { correct: ['日本', 'の', '食べ物', 'が', '好き', 'です', '。'], english: 'I like Japanese food.' },
+    { correct: ['駅', 'まで', '歩いて', '10分', 'かかります', '。'], english: 'It takes 10 minutes to walk to the station.' },
+    { correct: ['先生', 'に', '質問', 'を', 'しました', '。'], english: 'I asked the teacher a question.' },
+    { correct: ['電車', 'の', '中', 'で', '本', 'を', '読みます', '。'], english: 'I read books on the train.' },
+    { correct: ['母', 'が', '作った', '料理', 'は', 'おいしい', 'です', '。'], english: 'The food my mother made is delicious.' },
+    { correct: ['彼', 'は', '英語', 'が', '上手', 'です', '。'], english: 'He is good at English.' },
+    { correct: ['すみません', '、', 'トイレ', 'は', 'どこ', 'ですか', '？'], english: 'Excuse me, where is the toilet?' },
+    { correct: ['寝る', '前', 'に', '歯', 'を', '磨きます', '。'], english: 'I brush my teeth before going to bed.' },
+    { correct: ['来週', 'の', '月曜日', 'に', '会議', 'が', 'あります', '。'], english: 'There is a meeting next Monday.' },
+    { correct: ['もし', '時間', 'が', 'あれば', '手伝って', 'ください', '。'], english: 'If you have time, please help.' },
+    { correct: ['このレストラン', 'は', '予約', 'が', '必要', 'です', '。'], english: 'This restaurant requires a reservation.' },
+  ],
+  N3: [
+    { correct: ['明日', '天気', 'が', 'よければ', '公園', 'に', '行きます', '。'], english: 'If the weather is good tomorrow, I will go to the park.' },
+    { correct: ['雨', 'が', '降って', 'いる', 'から', '傘', 'を', '持って', 'いきましょう', '。'], english: "It's raining, so let's take an umbrella." },
+    { correct: ['日本', 'に', '来て', 'から', '3年', 'に', 'なります', '。'], english: 'It has been 3 years since I came to Japan.' },
+    { correct: ['彼女', 'は', 'ピアノ', 'を', '弾く', 'こと', 'が', 'できます', '。'], english: 'She can play the piano.' },
+    { correct: ['この', '問題', 'は', '難しすぎて', '解けません', '。'], english: 'This problem is too difficult to solve.' },
+    { correct: ['彼', 'が', '来る', 'かどうか', 'わかりません', '。'], english: "I don't know whether he will come." },
+    { correct: ['毎朝', 'ジョギング', 'する', 'ように', 'して', 'います', '。'], english: 'I try to jog every morning.' },
+    { correct: ['先生', 'に', '褒められて', 'うれしかった', 'です', '。'], english: 'I was happy to be praised by the teacher.' },
+    { correct: ['この', '映画', 'は', '見る', '価値', 'が', 'あります', '。'], english: 'This movie is worth watching.' },
+    { correct: ['忙しい', 'にもかかわらず', '手伝って', 'くれました', '。'], english: 'Despite being busy, they helped me.' },
+    { correct: ['会議', 'の', '結果', 'について', '報告', 'します', '。'], english: 'I will report on the results of the meeting.' },
+    { correct: ['経験', 'が', 'ない', 'わけでは', 'ありません', '。'], english: "It's not that I have no experience." },
+    { correct: ['遅刻', 'しない', 'ように', '早く', '出ました', '。'], english: 'I left early so as not to be late.' },
+    { correct: ['日本語', 'が', '上手', 'に', 'なる', 'ために', '毎日', '練習', 'します', '。'], english: 'I practice every day to become good at Japanese.' },
+    { correct: ['田中さん', 'に', 'よると', '会議', 'は', '中止', 'だ', 'そうです', '。'], english: 'According to Mr. Tanaka, the meeting is cancelled.' },
+  ],
+  N2: [
+    { correct: ['彼', 'は', '努力', 'した', 'にもかかわらず', '試験', 'に', '落ちて', 'しまった', '。'], english: 'Despite his efforts, he failed the exam.' },
+    { correct: ['この', '計画', 'を', '実行', 'する', 'にあたって', '十分な', '準備', 'が', '必要', 'です', '。'], english: 'Sufficient preparation is necessary when carrying out this plan.' },
+    { correct: ['彼女', 'の', '話', 'を', '聞く', 'につれて', '事情', 'が', 'わかって', 'きた', '。'], english: 'As I listened to her story, I came to understand the situation.' },
+    { correct: ['環境', '問題', 'は', '深刻化', 'する', '一方', 'です', '。'], english: 'Environmental problems are only getting worse.' },
+    { correct: ['経済', 'が', '悪化', 'した', '結果', '失業率', 'が', '上がった', '。'], english: 'As a result of the economic decline, the unemployment rate rose.' },
+    { correct: ['あの', '映画', 'は', '見れば', '見る', 'ほど', '面白い', '。'], english: 'The more you watch that movie, the more interesting it is.' },
+    { correct: ['この', '問題', 'に', '関して', 'は', '私', 'に', '任せて', 'ください', '。'], english: 'Please leave this problem to me.' },
+    { correct: ['社長', 'として', 'の', '責任', 'を', '果たさ', 'なければ', 'なりません', '。'], english: 'I must fulfill my responsibilities as president.' },
+    { correct: ['技術', 'の', '進歩', 'に', '伴い', '生活', 'が', '便利', 'に', 'なった', '。'], english: 'Life has become more convenient with advances in technology.' },
+    { correct: ['結論', 'から', '言えば', 'この', '計画', 'は', '無理', 'です', '。'], english: 'In conclusion, this plan is impossible.' },
+    { correct: ['予算', 'の', '関係', '上', '計画', 'を', '変更', 'せざるを得ない', '。'], english: 'Due to budget constraints, we have no choice but to change the plan.' },
+    { correct: ['彼', 'は', '医者', 'で', 'ある', 'と同時に', '作家', 'でもある', '。'], english: 'He is a doctor and at the same time a writer.' },
+    { correct: ['新しい', '法律', 'が', '施行', 'された', 'のを', 'きっかけに', '社会', 'が', '変わった', '。'], english: 'Society changed triggered by the new law.' },
+    { correct: ['いくら', '説明', 'しても', '彼', 'は', '理解', 'しようと', 'しない', '。'], english: 'No matter how much I explain, he refuses to understand.' },
+    { correct: ['この', '地域', 'は', '自然', 'が', '豊か', 'な', '反面', '交通', 'が', '不便', 'です', '。'], english: 'This area is rich in nature, but on the other hand transportation is inconvenient.' },
+  ],
+  N1: [
+    { correct: ['彼', 'は', '天才', 'と', '言われる', 'だけ', 'あって', '発想', 'が', '独創的', 'だ', '。'], english: 'He is said to be a genius, and indeed his ideas are original.' },
+    { correct: ['今更', '後悔', 'した', 'ところで', '取り返し', 'が', 'つかない', '。'], english: "Even if you regret it now, it's too late to fix." },
+    { correct: ['国民', 'の', '安全', 'を', '確保', 'する', 'べく', '政府', 'は', '対策', 'を', '講じた', '。'], english: 'The government took measures to ensure the safety of citizens.' },
+    { correct: ['彼女', 'は', '若い', 'ながら', 'も', '経営者', 'として', '手腕', 'を', '発揮', 'して', 'いる', '。'], english: 'Despite being young, she demonstrates her ability as a manager.' },
+    { correct: ['この', '法案', 'が', '可決', 'された', '暁', 'には', '社会', 'が', '大きく', '変わる', 'だろう', '。'], english: 'When this bill is passed, society will change greatly.' },
+    { correct: ['経済', '危機', 'を', '乗り越える', 'には', '官民', '一体', 'と', 'なって', '取り組む', '必要', 'が', 'ある', '。'], english: 'To overcome the economic crisis, public and private sectors must work together.' },
+    { correct: ['先人', 'たち', 'の', '知恵', 'なくして', 'は', '今日', 'の', '繁栄', 'は', 'なかった', 'であろう', '。'], english: "Without the wisdom of our predecessors, today's prosperity would not have existed." },
+    { correct: ['彼', 'の', '態度', 'たるや', '目', 'に', '余る', 'ものが', 'ある', '。'], english: 'His attitude is truly beyond tolerance.' },
+    { correct: ['この', '作品', 'は', '芸術性', 'もさることながら', '社会的', 'メッセージ', 'が', '強い', '。'], english: "This work has a strong social message, not to mention its artistic value." },
+    { correct: ['災害', 'に', '備え', 'て', 'おく', 'に', '越した', 'こと', 'は', 'ない', '。'], english: "It's best to prepare for disasters." },
+    { correct: ['彼', 'は', '証拠', 'を', '突きつけ', 'られる', 'や', 'いなや', '自白', 'した', '。'], english: 'The moment the evidence was presented, he confessed.' },
+    { correct: ['人口', '減少', '問題', 'は', '対岸', 'の', '火事', 'では', '済まされない', '。'], english: 'The population decline issue cannot be treated as someone else\'s problem.' },
+    { correct: ['この', '小説', 'は', '読めば', '読む', 'ほど', '考えさせ', 'られる', '。'], english: 'The more you read this novel, the more it makes you think.' },
+    { correct: ['政府', 'の', '方針', 'いかん', 'に', 'よっては', '今後', '大きな', '影響', 'が', '出る', '。'], english: "Depending on the government's policy, there may be significant impact." },
+    { correct: ['彼', 'の', '功績', 'は', '称賛', 'に', '値する', '。'], english: 'His achievements deserve praise.' },
+  ],
+}
+
+const grammarData = computed(() => grammarByLevel[selectedLevel.value] || grammarByLevel.N5)
 
 function generateGrammarQuestion() {
-  let available = grammarData.map((_, i) => i).filter(i => !usedGrammarIndices.includes(i))
-  if (available.length === 0) { usedGrammarIndices = []; available = grammarData.map((_, i) => i) }
+  const data = grammarData.value
+  let available = data.map((_, i) => i).filter(i => !usedGrammarIndices.includes(i))
+  if (available.length === 0) { usedGrammarIndices = []; available = data.map((_, i) => i) }
   const idx = available[Math.floor(Math.random() * available.length)]
   usedGrammarIndices.push(idx)
-  const d = grammarData[idx]
+  const d = data[idx]
   return { correct: d.correct, english: d.english }
 }
 
@@ -1242,6 +1446,64 @@ function clearGrammarSelection() {
   grammarUsedPool.value = []
 }
 
+// Dictionary lookup (Jisho)
+const lookupWord = async () => {
+  const query = dictionaryQuery.value.trim()
+  if (!query) return
+  dictionaryLoading.value = true
+  dictionaryError.value = ''
+  dictionaryResults.value = []
+  try {
+    const data = await searchDictionary(query)
+    dictionaryResults.value = data.slice(0, 5)
+  } catch (err) {
+    console.error('Dictionary lookup failed:', err)
+    const message = err?.response?.data?.message || err?.message || 'Failed to fetch dictionary results'
+    dictionaryError.value = message
+    dictionaryResults.value = []
+  } finally {
+    dictionaryLoading.value = false
+  }
+}
+
+// ==========================================
+// DRAG AND DROP LOGIC
+// ==========================================
+let dragSource = null // { from: 'pool'|'answer', word, poolIdx, answerIdx }
+
+function onDragStartFromPool(event, word, idx) {
+  if (grammarAnswered.value || isWordUsed(word, idx)) return
+  dragSource = { from: 'pool', word, poolIdx: idx }
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', word)
+}
+
+function onDragStartFromAnswer(event, idx) {
+  if (grammarAnswered.value) return
+  dragSource = { from: 'answer', answerIdx: idx, word: grammarSelected.value[idx] }
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', grammarSelected.value[idx])
+}
+
+function onDropToAnswer(event) {
+  event.preventDefault()
+  if (!dragSource || grammarAnswered.value) return
+  if (dragSource.from === 'pool') {
+    addWord(dragSource.word, dragSource.poolIdx)
+  }
+  // If dragging from answer to answer, it's a reorder — do nothing extra
+  dragSource = null
+}
+
+function onDropToPool(event) {
+  event.preventDefault()
+  if (!dragSource || grammarAnswered.value) return
+  if (dragSource.from === 'answer') {
+    removeWord(dragSource.answerIdx)
+  }
+  dragSource = null
+}
+
 function checkGrammarAnswer() {
   if (grammarAnswered.value) return
   clearInterval(grammarTimer)
@@ -1275,7 +1537,7 @@ async function finishGrammarGame() {
   clearInterval(grammarTimer)
   // Submit score to backend
   try {
-    const res = await api.post('/quiz/scores', { score: grammarScore.value, total: 10, quiz_type: 'grammar_rearrangement' })
+    const res = await api.post('/quiz/scores', { score: grammarScore.value, total: 10, quiz_type: `jlpt_${selectedLevel.value.toLowerCase()}_grammar` })
     // Update user points in store
     if (authStore.user && res.data.totalPoints) {
       authStore.user.points = res.data.totalPoints
@@ -1293,10 +1555,21 @@ async function finishGrammarGame() {
   background: var(--bg-primary);
 }
 
-/* ===== Level Selector ===== */
+/* ===== Level Selector (centered clean design) ===== */
+.quiz-hero-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
 .level-selector {
-  margin: 1.5rem 0;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .level-label {
@@ -1426,25 +1699,8 @@ async function finishGrammarGame() {
 }
 
 .quiz-hero-content {
-  position: relative;
-  z-index: 1;
-}
-
-.quiz-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.25rem;
-  background: rgba(212, 175, 55, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-primary);
-  margin-bottom: 1.25rem;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  text-align: left;
+  flex: 1;
 }
 
 .quiz-title {
@@ -1556,37 +1812,6 @@ async function finishGrammarGame() {
   margin-bottom: 1.75rem;
   line-height: 1.7;
   font-size: 0.95rem;
-}
-
-/* Keyboard Hint */
-.keyboard-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.75rem;
-  padding: 0.625rem 1.25rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-}
-
-.hint-icon {
-  font-size: 1rem;
-}
-
-kbd {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .quiz-rules {
@@ -2287,11 +2512,13 @@ kbd {
   padding: 0.875rem;
   display: flex;
   align-items: center;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.grammar-answer-area:focus-within {
-  border-color: rgba(212, 175, 55, 0.4);
+.grammar-answer-area:focus-within,
+.grammar-answer-area.drag-over {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.04);
 }
 
 .answer-slots {
@@ -2324,12 +2551,17 @@ kbd {
   font-size: 1rem;
   font-weight: 600;
   font-family: 'Noto Sans JP', sans-serif;
-  cursor: pointer;
+  cursor: grab;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1.5px solid transparent;
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  user-select: none;
+}
+
+.word-chip:active {
+  cursor: grabbing;
 }
 
 .word-chip.available {
@@ -2388,6 +2620,90 @@ kbd {
   font-family: 'Noto Sans JP', sans-serif;
   font-weight: 600;
   color: #16a34a;
+}
+
+/* Dictionary lookup */
+.dictionary-card {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+}
+
+.dictionary-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.dictionary-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.dictionary-hint {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+.dictionary-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dict-input {
+  min-width: 240px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dictionary-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dictionary-item {
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-tertiary);
+}
+
+.dict-word {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-weight: 700;
+}
+
+.dict-kanji { font-size: 1.1rem; }
+.dict-reading { color: var(--text-tertiary); font-size: 0.95rem; }
+.dict-meaning { color: var(--text-secondary); margin-top: 0.25rem; }
+
+.dict-tags { margin-top: 0.35rem; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.dict-tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.dictionary-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
 }
 
 /* Grammar review items */

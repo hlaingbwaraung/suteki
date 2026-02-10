@@ -1,26 +1,27 @@
+/**
+ * Coupon Service
+ *
+ * API calls for coupon operations.
+ * Public users can view coupons; shop owners can create / edit / delete.
+ */
+
 import api from './api'
 
-// Public: get active coupons for a business
-export const getBusinessCoupons = (businessId) => {
-  return api.get(`/coupons/business/${businessId}`)
-}
+/* ---------- Public ---------- */
 
-// Shop owner: get my coupons
-export const getMyCoupons = () => {
-  return api.get('/shop-owner/coupons')
-}
+/** Get all active coupons for a specific business */
+export const getBusinessCoupons = (businessId) => api.get(`/coupons/business/${businessId}`)
 
-// Create coupon
-export const createCoupon = (couponData) => {
-  return api.post('/shop-owner/coupons', couponData)
-}
+/* ---------- Shop Owner ---------- */
 
-// Update coupon
-export const updateCoupon = (id, couponData) => {
-  return api.put(`/shop-owner/coupons/${id}`, couponData)
-}
+/** Get my coupons (shop owner) */
+export const getMyCoupons = ()              => api.get('/shop-owner/coupons')
 
-// Delete coupon
-export const deleteCoupon = (id) => {
-  return api.delete(`/shop-owner/coupons/${id}`)
-}
+/** Create a new coupon */
+export const createCoupon = (couponData)     => api.post('/shop-owner/coupons', couponData)
+
+/** Update an existing coupon */
+export const updateCoupon = (id, couponData) => api.put(`/shop-owner/coupons/${id}`, couponData)
+
+/** Delete a coupon */
+export const deleteCoupon = (id)             => api.delete(`/shop-owner/coupons/${id}`)

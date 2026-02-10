@@ -1,3 +1,11 @@
+/**
+ * Blog controller  –  CRUD for blog articles.
+ *
+ * Public: getAllBlogs, getBlogBySlug
+ * Admin:  getBlogStats, createBlog, updateBlog, deleteBlog
+ *
+ * Supports bilingual fields: title_my, excerpt_my, content_my.
+ */
 const { Blog, User } = require('../models')
 const { Op } = require('sequelize')
 
@@ -93,7 +101,7 @@ exports.createBlog = async (req, res) => {
       })
     }
 
-    const { title, emoji, photo, category, tag, excerpt, content, read_time, published } = req.body
+    const { title, title_my, emoji, photo, category, tag, excerpt, excerpt_my, content, content_my, read_time, published } = req.body
 
     // Validate required fields
     if (!title || !category || !tag || !excerpt || !content) {
@@ -115,13 +123,16 @@ exports.createBlog = async (req, res) => {
 
     const blog = await Blog.create({
       title,
+      title_my:   title_my || null,
       slug,
       emoji: emoji || '📝',
       photo: photo || null,
       category,
       tag,
       excerpt,
+      excerpt_my: excerpt_my || null,
       content,
+      content_my: content_my || null,
       read_time: read_time || '5 min read',
       author_id: req.user.id,
       published: published !== undefined ? published : true
@@ -169,7 +180,7 @@ exports.updateBlog = async (req, res) => {
     }
 
     const { id } = req.params
-    const { title, emoji, photo, category, tag, excerpt, content, read_time, published } = req.body
+    const { title, title_my, emoji, photo, category, tag, excerpt, excerpt_my, content, content_my, read_time, published } = req.body
 
     const blog = await Blog.findByPk(id)
     if (!blog) {
@@ -195,7 +206,7 @@ exports.updateBlog = async (req, res) => {
       blog.slug = newSlug
     }
 
-    // Update fields
+    // Update fields (EN)
     if (title) blog.title = title
     if (emoji !== undefined) blog.emoji = emoji
     if (photo !== undefined) blog.photo = photo
@@ -205,6 +216,11 @@ exports.updateBlog = async (req, res) => {
     if (content) blog.content = content
     if (read_time) blog.read_time = read_time
     if (published !== undefined) blog.published = published
+
+    // Update fields (MY / Burmese)
+    if (title_my !== undefined)   blog.title_my   = title_my
+    if (excerpt_my !== undefined) blog.excerpt_my = excerpt_my
+    if (content_my !== undefined) blog.content_my = content_my
 
     await blog.save()
 

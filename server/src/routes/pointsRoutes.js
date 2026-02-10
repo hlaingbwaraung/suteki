@@ -1,3 +1,12 @@
+/**
+ * Points routes  –  /api/points  (all routes require JWT)
+ *
+ *   GET  /me                – Current user’s point balance
+ *   GET  /shop              – Available coupons in the points shop
+ *   POST /redeem            – Redeem a coupon with points
+ *   GET  /my-coupons        – User’s redeemed coupons
+ *   POST /use-coupon/:id    – Mark a redeemed coupon as used
+ */
 const express = require('express')
 const router = express.Router()
 const pointsController = require('../controllers/pointsController')

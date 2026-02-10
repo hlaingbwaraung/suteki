@@ -1,30 +1,44 @@
-const User = require('./User')
-const Category = require('./Category')
-const Business = require('./Business')
+/**
+ * Model Registry & Associations
+ *
+ * Central file that imports every Sequelize model and
+ * wires up all the associations between them.
+ *
+ * Relationship map:
+ *   Category  1 ── ∞  Business
+ *   User      ∞ ── ∞  Business   (through SavedBusiness)
+ *   User      1 ── ∞  Blog       (author)
+ *   User      1 ── ∞  Business   (owner / shop-owner)
+ *   Business  1 ── ∞  Coupon
+ *   User      1 ── ∞  QuizScore
+ *   User      1 ── ∞  UserCoupon
+ *   Coupon    1 ── ∞  UserCoupon
+ */
+
+const User          = require('./User')
+const Category      = require('./Category')
+const Business      = require('./Business')
 const SavedBusiness = require('./SavedBusiness')
-const Blog = require('./Blog')
-const Coupon = require('./Coupon')
-const QuizScore = require('./QuizScore')
-const UserCoupon = require('./UserCoupon')
+const Blog          = require('./Blog')
+const Coupon        = require('./Coupon')
+const QuizScore     = require('./QuizScore')
+const UserCoupon    = require('./UserCoupon')
 
-// Define associations
-Category.hasMany(Business, {
-  foreignKey: 'category_id',
-  as: 'businesses'
-})
+/* ============================
+ *  Category ↔ Business
+ * ============================ */
+Category.hasMany(Business, { foreignKey: 'category_id', as: 'businesses' })
+Business.belongsTo(Category, { foreignKey: 'category_id', as: 'category' })
 
-Business.belongsTo(Category, {
-  foreignKey: 'category_id',
-  as: 'category'
-})
-
+/* ============================
+ *  User ↔ SavedBusiness (many-to-many)
+ * ============================ */
 User.belongsToMany(Business, {
   through: SavedBusiness,
   foreignKey: 'user_id',
   otherKey: 'business_id',
   as: 'savedBusinesses'
 })
-
 Business.belongsToMany(User, {
   through: SavedBusiness,
   foreignKey: 'business_id',
@@ -32,82 +46,45 @@ Business.belongsToMany(User, {
   as: 'savedByUsers'
 })
 
-// Direct associations for SavedBusiness
-SavedBusiness.belongsTo(User, {
-  foreignKey: 'user_id',
-  as: 'user'
-})
+// Direct join-table associations (for eager-loading join table rows)
+SavedBusiness.belongsTo(User,     { foreignKey: 'user_id',     as: 'user' })
+SavedBusiness.belongsTo(Business, { foreignKey: 'business_id', as: 'business' })
 
-SavedBusiness.belongsTo(Business, {
-  foreignKey: 'business_id',
-  as: 'business'
-})
+/* ============================
+ *  User → Blog  (author)
+ * ============================ */
+Blog.belongsTo(User, { foreignKey: 'author_id', as: 'author' })
+User.hasMany(Blog,   { foreignKey: 'author_id', as: 'blogs' })
 
-// Blog associations
-Blog.belongsTo(User, {
-  foreignKey: 'author_id',
-  as: 'author'
-})
+/* ============================
+ *  User → Business  (shop owner)
+ * ============================ */
+Business.belongsTo(User, { foreignKey: 'owner_id', as: 'owner' })
+User.hasMany(Business,   { foreignKey: 'owner_id', as: 'ownedBusinesses' })
 
-User.hasMany(Blog, {
-  foreignKey: 'author_id',
-  as: 'blogs'
-})
+/* ============================
+ *  Business → Coupon
+ * ============================ */
+Coupon.belongsTo(Business,   { foreignKey: 'business_id', as: 'business' })
+Business.hasMany(Coupon,     { foreignKey: 'business_id', as: 'coupons' })
 
-// Business owner association
-Business.belongsTo(User, {
-  foreignKey: 'owner_id',
-  as: 'owner'
-})
+/* ============================
+ *  User → QuizScore
+ * ============================ */
+QuizScore.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+User.hasMany(QuizScore,   { foreignKey: 'user_id', as: 'quizScores' })
 
-User.hasMany(Business, {
-  foreignKey: 'owner_id',
-  as: 'ownedBusinesses'
-})
+/* ============================
+ *  User / Coupon → UserCoupon (redemptions)
+ * ============================ */
+UserCoupon.belongsTo(User,   { foreignKey: 'user_id',   as: 'user' })
+UserCoupon.belongsTo(Coupon, { foreignKey: 'coupon_id', as: 'coupon' })
+User.hasMany(UserCoupon,     { foreignKey: 'user_id',   as: 'redeemedCoupons' })
+Coupon.hasMany(UserCoupon,   { foreignKey: 'coupon_id', as: 'redemptions' })
 
-// Coupon associations
-Coupon.belongsTo(Business, {
-  foreignKey: 'business_id',
-  as: 'business'
-})
-
-Business.hasMany(Coupon, {
-  foreignKey: 'business_id',
-  as: 'coupons'
-})
-
-// Quiz score associations
-QuizScore.belongsTo(User, {
-  foreignKey: 'user_id',
-  as: 'user'
-})
-
-User.hasMany(QuizScore, {
-  foreignKey: 'user_id',
-  as: 'quizScores'
-})
-
-// UserCoupon associations
-UserCoupon.belongsTo(User, {
-  foreignKey: 'user_id',
-  as: 'user'
-})
-
-UserCoupon.belongsTo(Coupon, {
-  foreignKey: 'coupon_id',
-  as: 'coupon'
-})
-
-User.hasMany(UserCoupon, {
-  foreignKey: 'user_id',
-  as: 'redeemedCoupons'
-})
-
-Coupon.hasMany(UserCoupon, {
-  foreignKey: 'coupon_id',
-  as: 'redemptions'
-})
-
+/* ============================
+ *  Exports
+ * ============================ */
 module.exports = {
   User,
   Category,

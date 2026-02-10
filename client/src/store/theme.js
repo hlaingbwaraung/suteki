@@ -1,43 +1,44 @@
+/**
+ * Theme Store (Pinia)
+ *
+ * Handles dark / light mode toggle.
+ * Persists the user’s preference in localStorage and
+ * applies the corresponding CSS class to <html>.
+ */
+
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
 export const useThemeStore = defineStore('theme', () => {
-  // Initialize from localStorage or default to light
+  /* ---------- State ---------- */
   const savedTheme = localStorage.getItem('theme') || 'light'
   const isDarkMode = ref(savedTheme === 'dark')
 
-  // Apply theme to document
+  /* ---------- Helpers ---------- */
+
+  /** Apply the "dark" or "light" class to <html> and persist */
   const applyTheme = (dark) => {
-    if (dark) {
-      document.documentElement.classList.add('dark')
-      document.documentElement.classList.remove('light')
-    } else {
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    }
+    document.documentElement.classList.toggle('dark',  dark)
+    document.documentElement.classList.toggle('light', !dark)
     localStorage.setItem('theme', dark ? 'dark' : 'light')
   }
 
-  // Toggle theme
+  /* ---------- Actions ---------- */
+
+  /** Toggle between dark and light */
   const toggleTheme = () => {
     isDarkMode.value = !isDarkMode.value
     applyTheme(isDarkMode.value)
   }
 
-  // Set specific theme
+  /** Explicitly set dark or light */
   const setTheme = (dark) => {
     isDarkMode.value = dark
     applyTheme(dark)
   }
 
-  // Watch for changes
-  watch(isDarkMode, (newVal) => {
-    applyTheme(newVal)
-  }, { immediate: true })
+  // Apply immediately on store creation
+  watch(isDarkMode, (newVal) => applyTheme(newVal), { immediate: true })
 
-  return {
-    isDarkMode,
-    toggleTheme,
-    setTheme
-  }
+  return { isDarkMode, toggleTheme, setTheme }
 })

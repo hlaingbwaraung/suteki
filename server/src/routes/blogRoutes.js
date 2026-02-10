@@ -1,3 +1,16 @@
+/**
+ * Blog routes  –  /api/blogs
+ *
+ * Public:
+ *   GET  /                – List published blogs
+ *   GET  /:slug           – Single blog by slug
+ *
+ * Admin (JWT):
+ *   GET  /admin/stats     – Blog statistics
+ *   POST /                – Create blog
+ *   PUT  /:id             – Update blog
+ *   DELETE /:id           – Delete blog
+ */
 const express = require('express')
 const router = express.Router()
 const blogController = require('../controllers/blogController')

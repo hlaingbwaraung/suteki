@@ -1,3 +1,13 @@
+<!--
+  HomePage.vue
+
+  Landing page with:
+    - Hero banner with CTA buttons
+    - Category grid (6 featured categories)
+    - Floating emoji decorations
+    - Footer
+-->
+
 <template>
   <div class="home-page">
     <AppHeader />
@@ -23,11 +33,6 @@
           <router-link to="/about-japan" class="btn-hero-secondary">{{ $t('home.learnMore') }}</router-link>
         </div>
         
-        <!-- Language Selector -->
-        <div class="language-selector">
-          <button class="lang-btn" :class="{ active: currentLang === 'en' }" @click="switchLang('en')">🇬🇧 EN</button>
-          <button class="lang-btn" :class="{ active: currentLang === 'my' }" @click="switchLang('my')">🇲🇲 မြန်မာ</button>
-        </div>
       </div>
       
       <!-- Floating Elements -->
@@ -175,29 +180,31 @@
 </template>
 
 <script setup>
+/**
+ * HomePage script
+ *
+ * - Uses i18n for bilingual labels (English / Burmese)
+ * - Hard-coded 6 featured categories (linked to /categories/:slug)
+ */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../store/auth'
 import AppHeader from '../components/layout/AppHeader.vue'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const authStore = useAuthStore()
+
+/* ---------- Stats shown in the hero section ---------- */
 const businessCount = ref(150)
 const categoryCount = ref(6)
 
-const currentLang = computed(() => locale.value)
-
-const switchLang = (lang) => {
-  locale.value = lang
-  localStorage.setItem('locale', lang)
-}
-
+/* ---------- Featured categories ---------- */
 const categories = computed(() => [
-  { id: 1, slug: 'sim-cards', name: t('category.simCards'), icon: '📶', description: t('category.simCardsDesc') },
-  { id: 2, slug: 'ramen', name: t('category.ramen'), icon: '🍜', description: t('category.ramenDesc') },
-  { id: 3, slug: 'sushi', name: t('category.sushi'), icon: '🍣', description: t('category.sushiDesc') },
-  { id: 4, slug: 'yakiniku', name: t('category.yakiniku'), icon: '🥩', description: t('category.yakinikuDesc') },
-  { id: 5, slug: 'bookstores', name: t('category.bookstores'), icon: '📚', description: t('category.bookstoresDesc') },
+  { id: 1, slug: 'sim-cards',         name: t('category.simCards'),         icon: '📶', description: t('category.simCardsDesc') },
+  { id: 2, slug: 'ramen',             name: t('category.ramen'),            icon: '🍜', description: t('category.ramenDesc') },
+  { id: 3, slug: 'sushi',             name: t('category.sushi'),            icon: '🍣', description: t('category.sushiDesc') },
+  { id: 4, slug: 'yakiniku',          name: t('category.yakiniku'),         icon: '🥩', description: t('category.yakinikuDesc') },
+  { id: 5, slug: 'bookstores',        name: t('category.bookstores'),       icon: '📚', description: t('category.bookstoresDesc') },
   { id: 6, slug: 'currency-exchange', name: t('category.currencyExchange'), icon: '💱', description: t('category.currencyExchangeDesc') },
 ])
 </script>
@@ -326,31 +333,6 @@ const categories = computed(() => [
 .btn-hero-secondary:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-}
-
-.language-selector {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.lang-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all var(--transition-fast);
-}
-
-.lang-btn:hover,
-.lang-btn.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #1a1a2e;
 }
 
 /* Floating elements */
@@ -851,8 +833,5 @@ const categories = computed(() => [
     text-align: center;
   }
 
-  .language-selector {
-    margin-bottom: 1rem;
-  }
 }
 </style>

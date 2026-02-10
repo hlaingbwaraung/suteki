@@ -1,3 +1,16 @@
+/**
+ * Category routes  –  /api/categories
+ *
+ * Public:
+ *   GET  /              – List all categories
+ *   GET  /:slug         – Category detail by slug
+ *
+ * Admin (JWT):
+ *   GET  /admin/stats   – Category statistics
+ *   POST /              – Create category
+ *   PUT  /:id           – Update category
+ *   DELETE /:id         – Delete category
+ */
 const express = require('express')
 const router = express.Router()
 const categoryController = require('../controllers/categoryController')

@@ -1,3 +1,9 @@
+/**
+ * SavedBusiness model  –  Sequelize definition for the `saved_businesses` table.
+ *
+ * Join table linking users to their bookmarked businesses.
+ * Composite unique index on (user_id, business_id).
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

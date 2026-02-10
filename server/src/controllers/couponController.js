@@ -1,3 +1,10 @@
+/**
+ * Coupon controller  –  CRUD for discount coupons.
+ *
+ * Public:      getBusinessCoupons
+ * Admin/Owner: getAllCoupons, getOwnerCoupons,
+ *              createCoupon, updateCoupon, deleteCoupon
+ */
 const { Coupon, Business } = require('../models')
 const { Op } = require('sequelize')
 

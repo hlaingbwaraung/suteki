@@ -1,3 +1,17 @@
+/**
+ * Business routes  –  /api/businesses
+ *
+ * Public:
+ *   GET  /                      – List businesses (filter by category)
+ *   GET  /:id                   – Single business detail
+ *
+ * Admin (JWT):
+ *   GET  /admin/stats           – Business statistics
+ *   POST /                      – Create business
+ *   PUT  /:id                   – Update business
+ *   DELETE /:id                 – Delete business
+ *   PATCH /:id/toggle-active    – Toggle active flag
+ */
 const express = require('express')
 const router = express.Router()
 const businessController = require('../controllers/businessController')

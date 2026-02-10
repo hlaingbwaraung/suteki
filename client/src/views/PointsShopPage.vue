@@ -156,6 +156,13 @@
 </template>
 
 <script setup>
+/**
+ * PointsShopPage script
+ *
+ * Tabs:
+ *   - Shop: browse & redeem coupons with points
+ *   - My Coupons: view previously redeemed coupons
+ */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../store/auth'
@@ -165,21 +172,22 @@ import AppHeader from '../components/layout/AppHeader.vue'
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-const activeTab = ref('shop')
+/* ---------- Tab & Points ---------- */
+const activeTab  = ref('shop')
 const userPoints = ref(authStore.user?.points || 0)
 
-// Shop
-const coupons = ref([])
+/* ---------- Shop ---------- */
+const coupons     = ref([])
 const shopLoading = ref(false)
-const redeeming = ref(false)
+const redeeming   = ref(false)
 const redeemingId = ref(null)
 
-// My Coupons
-const myCoupons = ref([])
+/* ---------- My Coupons ---------- */
+const myCoupons        = ref([])
 const myCouponsLoading = ref(false)
 
-// Success
-const showSuccess = ref(false)
+/* ---------- Redeem Success ---------- */
+const showSuccess    = ref(false)
 const redeemedCoupon = ref(null)
 
 onMounted(async () => {

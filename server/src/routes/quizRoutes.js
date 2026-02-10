@@ -1,3 +1,9 @@
+/**
+ * Quiz routes  –  /api/quiz  (all routes require JWT)
+ *
+ *   POST /scores       – Submit a quiz score
+ *   GET  /leaderboard  – Leaderboard + personal best
+ */
 const express = require('express')
 const router = express.Router()
 const quizController = require('../controllers/quizController')

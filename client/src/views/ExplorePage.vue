@@ -1,3 +1,10 @@
+<!--
+  ExplorePage.vue
+
+  Browse all categories with business counts and a featured-businesses
+  grid. Supports bilingual category names (EN / MY).
+-->
+
 <template>
   <div class="explore-page">
     <AppHeader />
@@ -89,6 +96,12 @@
 </template>
 
 <script setup>
+/**
+ * ExplorePage script
+ *
+ * Loads all categories and businesses on mount.
+ * Counts businesses per category and picks the first 6 as “featured.”
+ */
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -97,21 +110,23 @@ import AppHeader from '../components/layout/AppHeader.vue'
 const { locale } = useI18n()
 const currentLocale = computed(() => locale.value)
 
+/* ---------- State ---------- */
 const categories = ref([])
-const businesses = ref([])
-const loading = ref(true)
+const businesses = ref([])   // featured subset (first 6)
+const loading    = ref(true)
 
+/* ---------- Data Loading ---------- */
 onMounted(async () => {
   try {
-    // Load categories
+    /* 1. Fetch categories */
     const catRes = await axios.get('http://localhost:5000/api/categories')
     const cats = catRes.data.categories || catRes.data || []
 
-    // Load all businesses to count per category
+    /* 2. Fetch all businesses for per-category counts */
     const bizRes = await axios.get('http://localhost:5000/api/businesses')
     const allBusinesses = bizRes.data.businesses || bizRes.data || []
 
-    // Count businesses per category
+    /* 3. Build { categoryId: count } map */
     const countMap = {}
     allBusinesses.forEach(b => {
       const cid = b.category_id
@@ -123,7 +138,7 @@ onMounted(async () => {
       businessCount: countMap[c.id] || 0
     }))
 
-    // Show first 6 businesses as featured
+    /* 4. First 6 businesses as featured */
     businesses.value = allBusinesses.slice(0, 6)
   } catch (err) {
     console.error('Error loading explore data:', err)

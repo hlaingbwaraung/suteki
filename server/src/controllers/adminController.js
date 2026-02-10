@@ -1,3 +1,11 @@
+/**
+ * Admin controller  –  user management for site administrators.
+ *
+ * Exports: getAllUsers, getUserStats, toggleAdminStatus,
+ *          togglePremiumStatus, deleteUser
+ *
+ * Every handler checks `req.user.is_admin` before proceeding.
+ */
 const { User } = require('../models')
 
 // Get all users (admin only)

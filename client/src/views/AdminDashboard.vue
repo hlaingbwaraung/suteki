@@ -229,12 +229,12 @@
                   </span>
                 </div>
                 <div class="blog-body">
-                  <h3>{{ blog.title }}</h3>
+                  <h3>{{ currentLocale === 'my' ? (blog.title_my || blog.title) : blog.title }}</h3>
                   <p class="blog-meta">
                     <span class="category-tag">{{ blog.category }}</span>
                     <span>{{ blog.read_time }}</span>
                   </p>
-                  <p class="blog-excerpt">{{ blog.excerpt }}</p>
+                  <p class="blog-excerpt">{{ currentLocale === 'my' ? (blog.excerpt_my || blog.excerpt) : blog.excerpt }}</p>
                   <div class="blog-stats">
                     <span>👁️ {{ blog.views }} views</span>
                     <span>📅 {{ formatDate(blog.created_at) }}</span>
@@ -601,7 +601,7 @@
         <form @submit.prevent="saveBlog" class="blog-form">
           <div class="form-row">
             <div class="form-group flex-1">
-              <label>Title *</label>
+              <label>Title (English) *</label>
               <input 
                 v-model="blogForm.title" 
                 type="text" 
@@ -620,6 +620,15 @@
                 placeholder="📝"
               />
             </div>
+          </div>
+
+          <div class="form-group">
+            <label>Title (Burmese)</label>
+            <input 
+              v-model="blogForm.title_my" 
+              type="text" 
+              placeholder="ဘလော့ခေါင်းစဉ်ရေးပါ"
+            />
           </div>
 
           <div class="form-group">
@@ -672,7 +681,7 @@
           </div>
 
           <div class="form-group">
-            <label>Excerpt * (Short description, 10-500 characters)</label>
+            <label>Excerpt (English) * (Short description, 10-500 characters)</label>
             <textarea 
               v-model="blogForm.excerpt" 
               required 
@@ -684,12 +693,32 @@
           </div>
 
           <div class="form-group">
-            <label>Content * (HTML allowed)</label>
+            <label>Excerpt (Burmese)</label>
+            <textarea 
+              v-model="blogForm.excerpt_my" 
+              rows="3"
+              maxlength="500"
+              placeholder="ဘလော့၏အကျဉ်းချုပ်ဖော်ပြချက်..."
+            ></textarea>
+            <small>{{ blogForm.excerpt_my?.length || 0 }} / 500</small>
+          </div>
+
+          <div class="form-group">
+            <label>Content (English) * (HTML allowed)</label>
             <textarea 
               v-model="blogForm.content" 
               required 
               rows="12"
               placeholder="<p>Your blog content here...</p>&#10;<h2>Subheading</h2>&#10;<ul><li>List item</li></ul>"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Content (Burmese) (HTML allowed)</label>
+            <textarea 
+              v-model="blogForm.content_my" 
+              rows="12"
+              placeholder="<p>သင့်ဘလော့အကြောင်းအရာကိုနေရာတွင်ရေးပါ...</p>"
             ></textarea>
           </div>
 
@@ -715,81 +744,97 @@
 </template>
 
 <script setup>
+/**
+ * AdminDashboard script
+ *
+ * Central admin panel with four management tabs:
+ *   1. Users   –  list / delete / toggle admin
+ *   2. Blogs   –  CRUD with bilingual fields (EN / MY)
+ *   3. Categories – CRUD with i18n names + icons
+ *   4. Shops   –  CRUD with bilingual descriptions, photos, map coords
+ */
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { useAuthStore } from '../store/auth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
+const { locale, t } = useI18n()
 
-// Tab Management
+const currentLocale = computed(() => locale.value)
+
+/* ---------- Tab ---------- */
 const activeTab = ref('users')
 
-// User Management
-const users = ref([])
-const stats = ref(null)
-const loading = ref(true)
-const error = ref('')
+/* ========== User Management ========== */
+const users       = ref([])
+const stats       = ref(null)
+const loading     = ref(true)
+const error       = ref('')
 const deleteModal = ref({ show: false, user: null })
 
-// Blog Management
-const blogs = ref([])
-const blogStats = ref(null)
-const blogLoading = ref(false)
-const blogError = ref('')
+/* ========== Blog Management ========== */
+const blogs          = ref([])
+const blogStats      = ref(null)
+const blogLoading    = ref(false)
+const blogError      = ref('')
 const deleteBlogModal = ref({ show: false, blog: null })
-const blogFormModal = ref({ show: false, blog: null })
-const blogSaving = ref(false)
+const blogFormModal   = ref({ show: false, blog: null })
+const blogSaving     = ref(false)
 const blogForm = ref({
-  title: '',
-  emoji: '📝',
-  photo: '',
-  category: '',
-  tag: '',
-  excerpt: '',
-  content: '',
-  read_time: '5 min read',
-  published: true
+  title:      '',
+  title_my:   '',
+  emoji:      '📝',
+  photo:      '',
+  category:   '',
+  tag:        '',
+  excerpt:    '',
+  excerpt_my: '',
+  content:    '',
+  content_my: '',
+  read_time:  '5 min read',
+  published:  true
 })
 
-// Category Management
-const categories = ref([])
-const categoryStats = ref(null)
-const categoryLoading = ref(false)
-const categoryError = ref('')
-const deleteCategoryModal = ref({ show: false, category: null })
-const categoryFormModal = ref({ show: false, category: null })
-const categorySaving = ref(false)
+/* ========== Category Management ========== */
+const categories           = ref([])
+const categoryStats        = ref(null)
+const categoryLoading      = ref(false)
+const categoryError        = ref('')
+const deleteCategoryModal  = ref({ show: false, category: null })
+const categoryFormModal    = ref({ show: false, category: null })
+const categorySaving       = ref(false)
 const categoryForm = ref({
-  name_en: '',
-  name_my: '',
-  icon: '📁',
-  slug: '',
+  name_en:       '',
+  name_my:       '',
+  icon:          '📁',
+  slug:          '',
   display_order: 0
 })
 
-// Shop Management
-const shops = ref([])
-const shopStats = ref(null)
-const shopLoading = ref(false)
-const shopError = ref('')
+/* ========== Shop Management ========== */
+const shops           = ref([])
+const shopStats       = ref(null)
+const shopLoading     = ref(false)
+const shopError       = ref('')
 const deleteShopModal = ref({ show: false, shop: null })
-const shopFormModal = ref({ show: false, shop: null })
-const shopSaving = ref(false)
+const shopFormModal   = ref({ show: false, shop: null })
+const shopSaving      = ref(false)
 const shopForm = ref({
-  name: '',
-  category_id: '',
+  name:           '',
+  category_id:    '',
   description_en: '',
   description_my: '',
-  address: '',
-  latitude: '',
-  longitude: '',
-  phone: '',
-  website: '',
-  price_range: '',
-  is_active: true
+  address:        '',
+  latitude:       '',
+  longitude:      '',
+  phone:          '',
+  website:        '',
+  price_range:    '',
+  is_active:      true
 })
 const shopPhotosText = ref('')
 const shopTagsText = ref('')
@@ -922,12 +967,15 @@ const openBlogForm = (blog) => {
     // Edit mode
     blogForm.value = {
       title: blog.title,
+      title_my: blog.title_my || '',
       emoji: blog.emoji,
       photo: blog.photo || '',
       category: blog.category,
       tag: blog.tag,
       excerpt: blog.excerpt,
+      excerpt_my: blog.excerpt_my || '',
       content: blog.content,
+      content_my: blog.content_my || '',
       read_time: blog.read_time,
       published: blog.published
     }
@@ -935,12 +983,15 @@ const openBlogForm = (blog) => {
     // Create mode
     blogForm.value = {
       title: '',
+      title_my: '',
       emoji: '📝',
       photo: '',
       category: '',
       tag: '',
       excerpt: '',
+      excerpt_my: '',
       content: '',
+      content_my: '',
       read_time: '5 min read',
       published: true
     }

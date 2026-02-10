@@ -1,3 +1,10 @@
+/**
+ * Business model  –  Sequelize definition for the `businesses` table.
+ *
+ * Represents a shop / restaurant / service listed on the platform.
+ * Fields include bilingual descriptions (EN / MY), geolocation,
+ * opening hours (JSONB), price range, photos array, and owner reference.
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

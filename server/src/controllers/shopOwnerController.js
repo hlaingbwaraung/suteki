@@ -1,3 +1,9 @@
+/**
+ * Shop-owner controller  –  dashboard stats and business editing.
+ *
+ * Exports: getMyBusinesses, updateMyBusiness, getDashboardStats
+ * Owner-scoped: all queries filter by owner_id = req.user.id.
+ */
 const { Business, Category, Coupon } = require('../models')
 
 // Get shop owner's businesses

@@ -1,3 +1,10 @@
+<!--
+  LoginPage.vue
+
+  Email/password sign-in form with Google OAuth option.
+  Includes a test-account shortcut for demo purposes.
+-->
+
 <template>
   <div class="auth-page">
     <div class="auth-container">
@@ -116,21 +123,29 @@
 </template>
 
 <script setup>
+/**
+ * LoginPage script
+ *
+ * Handles email/password login and Google OAuth.
+ * On success redirects to /dashboard.
+ */
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
-const form = ref({
-  email: '',
-  password: ''
-})
-const loading = ref(false)
-const error = ref('')
+
+/* ---------- Form State ---------- */
+const form         = ref({ email: '', password: '' })
+const loading      = ref(false)
+const error        = ref('')
 const showPassword = ref(false)
 
+/* ---------- Google OAuth ---------- */
+
+/** Called when Google credential is returned */
 const handleGoogleSuccess = async (credential) => {
   error.value = ''
   await authStore.googleLogin(credential)
@@ -146,6 +161,7 @@ const { googleLoading, isGoogleAvailable, triggerGoogleSignIn } = useGoogleAuth(
   handleGoogleError
 )
 
+/* ---------- Email / Password Login ---------- */
 const handleLogin = async () => {
   loading.value = true
   error.value = ''

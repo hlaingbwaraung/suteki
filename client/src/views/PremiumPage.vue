@@ -182,27 +182,30 @@
 </template>
 
 <script setup>
+/**
+ * PremiumPage script
+ *
+ * Displays pricing plans and handles a simulated payment flow.
+ * On success calls the backend to activate premium status.
+ */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import api from '../services/api'
 import AppHeader from '../components/layout/AppHeader.vue'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
 
-const selectedPlan = ref(null)
-const purchasing = ref(false)
-const showPaymentModal = ref(false)
-const showSuccessModal = ref(false)
+/* ---------- Payment State ---------- */
+const selectedPlan      = ref(null)
+const purchasing        = ref(false)
+const showPaymentModal  = ref(false)
+const showSuccessModal  = ref(false)
 const processingPayment = ref(false)
-const paymentMethod = ref('card')
+const paymentMethod     = ref('card')
 
-const cardForm = ref({
-  number: '',
-  expiry: '',
-  cvc: ''
-})
+const cardForm = ref({ number: '', expiry: '', cvc: '' })
 
 function selectPlan(plan) {
   if (!authStore.isAuthenticated) {

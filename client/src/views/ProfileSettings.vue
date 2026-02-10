@@ -143,32 +143,36 @@
 </template>
 
 <script setup>
+/**
+ * ProfileSettings script
+ *
+ * Two forms:
+ *   1. Profile – update name & email
+ *   2. Password – change password with current-password verification
+ */
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import AppHeader from '../components/layout/AppHeader.vue'
 import { useAuthStore } from '../store/auth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
 
-// Profile form
-const profileForm = ref({
-  name: '',
-  email: ''
-})
-const isUpdatingProfile = ref(false)
-const profileMessage = ref('')
+/* ---------- Profile Form ---------- */
+const profileForm        = ref({ name: '', email: '' })
+const isUpdatingProfile  = ref(false)
+const profileMessage     = ref('')
 const profileMessageType = ref('success')
 
-// Password form
+/* ---------- Password Form ---------- */
 const passwordForm = ref({
   currentPassword: '',
-  newPassword: '',
+  newPassword:     '',
   confirmPassword: ''
 })
-const isUpdatingPassword = ref(false)
-const passwordMessage = ref('')
+const isUpdatingPassword  = ref(false)
+const passwordMessage     = ref('')
 const passwordMessageType = ref('success')
 
 // Load user data

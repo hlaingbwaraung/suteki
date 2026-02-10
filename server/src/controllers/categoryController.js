@@ -1,3 +1,9 @@
+/**
+ * Category controller  –  CRUD for business categories.
+ *
+ * Public: getAllCategories, getCategoryBySlug
+ * Admin:  getCategoryStats, createCategory, updateCategory, deleteCategory
+ */
 const { Category, Business } = require('../models')
 const { Op } = require('sequelize')
 

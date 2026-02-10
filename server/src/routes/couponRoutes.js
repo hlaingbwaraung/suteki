@@ -1,3 +1,16 @@
+/**
+ * Coupon routes  –  /api/coupons
+ *
+ * Public:
+ *   GET  /business/:businessId   – Active coupons for a business
+ *
+ * Admin / Shop Owner (JWT):
+ *   GET  /admin/all              – All coupons (admin)
+ *   GET  /my                     – Owner’s own coupons
+ *   POST /                       – Create coupon
+ *   PUT  /:id                    – Update coupon
+ *   DELETE /:id                  – Delete coupon
+ */
 const express = require('express')
 const router = express.Router()
 const couponController = require('../controllers/couponController')

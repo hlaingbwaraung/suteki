@@ -1,3 +1,12 @@
+/**
+ * Admin routes  –  /api/admin  (all routes require JWT)
+ *
+ *   GET    /users                    – List all users
+ *   GET    /stats                    – User statistics
+ *   PATCH  /users/:userId/admin      – Toggle admin flag
+ *   PATCH  /users/:userId/premium    – Toggle premium flag
+ *   DELETE /users/:userId            – Delete user
+ */
 const express = require('express')
 const router = express.Router()
 const adminController = require('../controllers/adminController')

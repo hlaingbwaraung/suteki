@@ -1,3 +1,10 @@
+/**
+ * Auth controller  –  handles user registration, login, Google OAuth,
+ * profile management, password changes, and premium activation.
+ *
+ * Exports: register, login, googleAuth, getCurrentUser,
+ *          updateProfile, updatePassword, deleteAccount, activatePremium
+ */
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { OAuth2Client } = require('google-auth-library')

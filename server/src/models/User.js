@@ -1,3 +1,14 @@
+/**
+ * User model  –  Sequelize definition for the `users` table.
+ *
+ * Fields:
+ *   id, email, password_hash (+ virtual `password`), google_id,
+ *   name, preferred_language, email_verified, email_verification_token,
+ *   is_admin, birthdate, is_shop_owner, is_premium, premium_type,
+ *   premium_expires_at, points
+ *
+ * Auth can be local (email + password_hash) or Google OAuth (google_id).
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

@@ -1,3 +1,10 @@
+<!--
+  RegisterPage.vue
+
+  Account creation form with Google OAuth option.
+  Fields: name, email, birthdate, password, confirm password.
+-->
+
 <template>
   <div class="auth-page">
     <div class="auth-container">
@@ -161,24 +168,33 @@
 </template>
 
 <script setup>
+/**
+ * RegisterPage script
+ *
+ * Handles new-user registration (email/password) and Google OAuth.
+ * Validates password match before submission.
+ * On success redirects to /dashboard after a short delay.
+ */
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useGoogleAuth } from '../composables/useGoogleAuth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
+
+/* ---------- Form State ---------- */
 const form = ref({
-  name: '',
-  email: '',
-  birthdate: '',
-  password: '',
+  name:            '',
+  email:           '',
+  birthdate:       '',
+  password:        '',
   confirmPassword: ''
 })
-const loading = ref(false)
-const error = ref('')
-const success = ref('')
-const showPassword = ref(false)
+const loading             = ref(false)
+const error               = ref('')
+const success             = ref('')
+const showPassword        = ref(false)
 const showConfirmPassword = ref(false)
 
 const handleGoogleSuccess = async (credential) => {

@@ -1,3 +1,18 @@
+/**
+ * Auth routes  –  /api/auth
+ *
+ * Public:
+ *   POST /register          – Create account (email/password)
+ *   POST /login              – Email/password sign-in
+ *   POST /google             – Google OAuth sign-in
+ *
+ * Protected (JWT):
+ *   GET  /me                 – Current user profile
+ *   PUT  /profile            – Update name / email
+ *   PUT  /password           – Change password
+ *   DELETE /account          – Delete own account
+ *   POST /activate-premium   – Activate premium plan
+ */
 const express = require('express')
 const router = express.Router()
 const authController = require('../controllers/authController')

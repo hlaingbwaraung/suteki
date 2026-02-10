@@ -1,3 +1,14 @@
+<!--
+  BusinessDetailPage.vue
+
+  Displays a single business / shop with:
+    - Hero image, breadcrumb, name & tags
+    - Description (bilingual EN / MY)
+    - Opening hours, location, contact
+    - Sidebar: active coupons, save/unsave toggle, photo gallery
+    - Back button at the bottom of the content
+-->
+
 <template>
   <div class="business-detail-page">
     <AppHeader />
@@ -140,12 +151,25 @@
             </div>
           </div>
         </div>
+
+        <button class="page-back-btn" @click="goBack" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5"/>
+          </svg>
+          Back
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+/**
+ * BusinessDetailPage script
+ *
+ * Fetches a single business by ID from the API.
+ * Supports bilingual descriptions and the save/unsave (favourite) toggle.
+ */
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -154,18 +178,32 @@ import AppHeader from '../components/layout/AppHeader.vue'
 import { saveBusiness, unsaveBusiness, checkIfSaved } from '../services/favoriteService'
 import { useAuthStore } from '../store/auth'
 
-const route = useRoute()
+const route  = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
 const authStore = useAuthStore()
-const business = ref(null)
-const loading = ref(true)
-const error = ref('')
-const isSaved = ref(false)
-const isSaving = ref(false)
 
+/* ---------- State ---------- */
+const business = ref(null)   // business object from API
+const loading  = ref(true)
+const error    = ref('')
+const isSaved  = ref(false)  // whether the current user has saved this business
+const isSaving = ref(false)  // optimistic lock while toggling save
+
+/* ---------- Computed ---------- */
 const isAuthenticated = computed(() => authStore.isAuthenticated)
-const currentLocale = computed(() => locale.value)
+const currentLocale   = computed(() => locale.value)
+
+/* ---------- Navigation ---------- */
+
+/** Navigate back or fall back to home */
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 
 const handleToggleFavorite = async () => {
   if (!isAuthenticated.value) {
@@ -327,6 +365,28 @@ onMounted(async () => {
 
 .breadcrumb a:hover {
   opacity: 0.8;
+}
+
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.page-back-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(212, 175, 55, 0.08);
 }
 
 .breadcrumb .separator {

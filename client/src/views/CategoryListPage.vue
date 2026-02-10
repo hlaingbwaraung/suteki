@@ -77,6 +77,12 @@
 </template>
 
 <script setup>
+/**
+ * CategoryListPage script
+ *
+ * Displays businesses filtered by a category slug from the URL.
+ * Uses a static slug→meta map for names/icons; fetches businesses from API.
+ */
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -85,20 +91,23 @@ import AppHeader from '../components/layout/AppHeader.vue'
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const businesses = ref([])
-const loading = ref(true)
-const error = ref('')
-const categoryName = ref('')
-const categoryDescription = ref('')
-const categoryIcon = ref('')
-const currentLocale = computed(() => locale.value)
 
+/* ---------- State ---------- */
+const businesses          = ref([])
+const loading             = ref(true)
+const error               = ref('')
+const categoryName        = ref('')
+const categoryDescription = ref('')
+const categoryIcon        = ref('')
+const currentLocale       = computed(() => locale.value)
+
+/** Map slug → { name, icon, description } using i18n keys */
 const getCategoryMap = () => ({
-  'sim-cards': { name: t('category.simCards'), icon: '📶', description: t('category.simCardsDesc') },
-  'ramen': { name: t('category.ramen'), icon: '🍜', description: t('category.ramenDesc') },
-  'sushi': { name: t('category.sushi'), icon: '🍣', description: t('category.sushiDesc') },
-  'yakiniku': { name: t('category.yakiniku'), icon: '🥩', description: t('category.yakinikuDesc') },
-  'bookstores': { name: t('category.bookstores'), icon: '📚', description: t('category.bookstoresDesc') },
+  'sim-cards':         { name: t('category.simCards'),         icon: '📶', description: t('category.simCardsDesc') },
+  'ramen':             { name: t('category.ramen'),            icon: '🍜', description: t('category.ramenDesc') },
+  'sushi':             { name: t('category.sushi'),            icon: '🍣', description: t('category.sushiDesc') },
+  'yakiniku':          { name: t('category.yakiniku'),         icon: '🥩', description: t('category.yakinikuDesc') },
+  'bookstores':        { name: t('category.bookstores'),       icon: '📚', description: t('category.bookstoresDesc') },
   'currency-exchange': { name: t('category.currencyExchange'), icon: '💱', description: t('category.currencyExchangeDesc') },
 })
 

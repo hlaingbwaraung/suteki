@@ -1,3 +1,9 @@
+/**
+ * QuizScore model  –  Sequelize definition for the `quiz_scores` table.
+ *
+ * Stores a user’s JLPT quiz result: score out of total,
+ * quiz_type, and user_name for the leaderboard.
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

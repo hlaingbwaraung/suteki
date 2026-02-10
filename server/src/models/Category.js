@@ -1,3 +1,9 @@
+/**
+ * Category model  –  Sequelize definition for the `categories` table.
+ *
+ * Each category has bilingual names (EN / MY), an emoji icon,
+ * a URL-safe slug, and a display_order for sorting.
+ */
 const { DataTypes } = require('sequelize')
 const { sequelize } = require('../config/database')
 

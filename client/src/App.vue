@@ -1,9 +1,15 @@
+<!--
+  App.vue – Root Component
+
+  - Initialises the theme store so dark/light mode is applied on first load.
+  - Renders whichever <RouterView> page matches the current URL.
+-->
+
 <script setup>
 import { RouterView } from 'vue-router'
-import { onMounted } from 'vue'
 import { useThemeStore } from './store/theme'
 
-// Initialize theme on app mount
+// Trigger theme initialisation (applies dark/light class to <html>)
 const themeStore = useThemeStore()
 </script>
 
@@ -14,5 +20,5 @@ const themeStore = useThemeStore()
 </template>
 
 <style>
-/* Base styles moved to style.css */
+/* Global styles live in style.css */
 </style>
